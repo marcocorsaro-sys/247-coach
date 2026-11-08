@@ -1,0 +1,24 @@
+node_modules
+node_modules.nosync
+.next
+.next.nosync
+.turbo
+dist
+build
+.vercel
+.env
+.env.local
+.env.production
+.DS_Store
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# iCloud sync conflict artifacts
+* 2
+* 3
+* 2/
+* 3/
+*.nosync 2
+.env*.local

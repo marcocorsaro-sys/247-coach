@@ -1,0 +1,115 @@
+import type { RaceSeed } from "./types";
+
+const seed: RaceSeed = {
+  slug: "nizza-2027",
+  race: {
+    official_name: "IRONMAN France Nice",
+    region: "Costa Azzurra",
+    course_version: "Edizioni 2023-2026, indicativo",
+    intro: "La full distance di montagna del circuito europeo: 3,8 km nel Mediterraneo, 180 km con 2.400 m di dislivello tra Col de Vence e Col de l'Ecre, maratona piatta e calda sulla Promenade des Anglais. Si vince o si perde in discesa e nei primi 10 km di corsa.",
+    kpis: [
+      { v: "3,8 km", l: "nuoto · mare, un giro, partenza a onde dalla spiaggia di sassi" },
+      { v: "180 km", l: "bici · 2.400 m D+ · un giro, ritorno in piano sulla costa" },
+      { v: "42,2 km", l: "corsa · 4 giri da 10,5 km sulla Promenade, piatta" },
+      { v: "24-26 °C", l: "acqua a settembre · muta di solito ammessa, al limite" },
+      { v: "26-30 °C", l: "aria nel pomeriggio · sole pieno sulla corsa" },
+      { v: "12:40", l: "finisher mediano stimato · cut-off 16 h" },
+    ],
+    legs: {
+      swim: { bullets: [
+        "Baia degli Angeli, un giro rettangolare con boe grandi, acqua limpida e profonda subito",
+        "Ingresso dalla spiaggia di ciottoli: scarpette da scoglio o sandali lasciati sulla riva",
+        "Partenza a onde per tempo dichiarato: scegli la tua in modo onesto, il traffico si sente nei primi 400 m",
+        "Mare quasi sempre calmo al mattino; corrente laterale debole verso ovest",
+      ] },
+      bike: { bullets: [
+        "km 0-25 piano lungo la costa e il Var: resisti, la gara comincia dopo",
+        "km 40-55 Col de Vence, circa 10 km al 6-7 %: qui si decide il pacing, non il risultato",
+        "km 60-78 Col de l'Ecre via Gorges du Loup e Gourdon: lungo, regolare, 5 % medio",
+        "km 80-100 altipiano di Caussols e Gréolières, vento e saliscendi: rabbocca qui",
+        "km 100-135 discesa lunga e tecnica, asfalto misto, tornanti: freni e nutrizione prima, non durante",
+        "km 135-180 ritorno sulla costa in piano con vento frontale leggero: la corsa inizia qui",
+      ] },
+      run: { bullets: [
+        "Quattro giri da 10,5 km sulla Promenade des Anglais, piatti, inversione a cono",
+        "Sole pieno dalle 14, asfalto che restituisce calore: la temperatura percepita supera i 30 °C",
+        "Ristori ogni 2 km con ghiaccio e spugne: strategia di raffreddamento prima del passo",
+        "Pubblico continuo e tifo alto: il rischio è il primo giro troppo veloce",
+      ] },
+    },
+    profile: {
+      maxm: 1200,
+      points: [[0, 20], [20, 40], [30, 80], [42, 300], [52, 963], [60, 780], [70, 950], [78, 1118], [90, 1050], [100, 950], [110, 600], [125, 250], [135, 80], [160, 30], [180, 20]],
+      labels: [{ km: 52, m: 963, t: "Col de Vence 963 m" }, { km: 78, m: 1118, t: "Col de l'Ecre 1118 m" }, { km: 115, m: 450, t: "Discesa tecnica" }],
+    },
+    splits: [
+      { goal: "Finisher sereno", swim: "1:20", bike: "7:05", run: "4:40", total: "13:20" },
+      { goal: "Sub 12", swim: "1:12", bike: "6:25", run: "4:05", total: "11:55" },
+      { goal: "Sub 11", swim: "1:05", bike: "5:50", run: "3:50", total: "10:55" },
+      { goal: "Slot Kona M40-44", swim: "0:58", bike: "5:15", run: "3:20", total: "9:45" },
+    ],
+    demands: [
+      { t: "Bici: 2.400 m D+ con due salite da 40'-60' a FTP 75-80 %", b: "w/kg conta" },
+      { t: "Discesa: 35 km tecnici, rapporti e freni a disco consigliati", b: "guida" },
+      { t: "Caldo: maratona a 28-30 °C dopo 7 ore", b: "acclimatamento" },
+      { t: "Nuoto: mare calmo, muta al limite della temperatura", b: "adattamento no-muta" },
+      { t: "Logistica: ciottoli, deposito borse lontano, 4 giri", b: "piano T1/T2" },
+    ],
+    tips: [
+      { t: "Salite lunghe", p: "Due blocchi a settimana da 40'-60' continui a FTP 75-80 % da marzo. Il piano cerca tra i tuoi percorsi quelli con 15-20 km al 5-7 % e li propone al posto della seduta generica." },
+      { t: "Discesa", p: "Almeno 6 uscite con discese tecniche da 20'+ prima di luglio. Se non le hai vicino, un weekend in Costa Azzurra a giugno sul percorso vale più di un mese di rulli." },
+      { t: "Caldo", p: "Dal 1° agosto corse pomeridiane 2x a settimana con vestiario pesante o sauna post-seduta. Prova la strategia ghiaccio e spugne nelle ultime due lunghe." },
+      { t: "Nuoto senza muta", p: "Da luglio il lungo in acque libere senza muta ogni due settimane: la differenza di galleggiamento sui 3,8 km pesa 3-5'." },
+      { t: "Nutrizione", p: "90 g/h di carboidrati in bici provati in tutte le lunghe; borraccia già aperta e gel in tasca prima della discesa. In corsa 60 g/h più sodio." },
+      { t: "Materiale", p: "Rapporti 34/32 o 36/30, freni a disco, pastiglie nuove, pneumatici 28 mm. Niente ruota lenticolare: sull'altipiano il vento la paga." },
+    ],
+    logistics: [
+      { t: "Arrivare", p: "Aeroporto a 7 km dalla zona cambio, tram diretto. Da Torino e Milano 3-4 ore in auto: la soluzione più comoda con la bici. Treno fino a Nice-Ville con bici smontata." },
+      { t: "Dormire", p: "Promenade ovest, Carras o Magnan: a piedi dalla T1 e sul percorso corsa per i tuoi tifosi. Prenota a novembre, da giugno i prezzi raddoppiano." },
+      { t: "Famiglia", p: "La corsa a 4 giri è la gara più comoda da seguire: un punto sulla Promenade e ti vedono 8 volte. Vecchia Nizza e Castello a 15' a piedi per le ore della bici." },
+    ],
+    faq: [
+      { q: "Serve la muta a settembre?", a: "Dipende dall'anno: con acqua a 24,5 °C o meno è ammessa, oltre no. Allenati a nuotare 3,8 km senza." },
+      { q: "TT o bici da corsa?", a: "La maggioranza va in TT con rapporti 34/32 o 36/30 e freni a disco; chi conosce la discesa guadagna 8-12' su chi non l'ha mai vista." },
+      { q: "Dove dormire?", a: "Zona Promenade ovest o Carras, bici in camera, a piedi dalla zona cambio." },
+    ],
+  },
+  segments: [
+    { leg: "bike", position: 1, km_from: 0, km_to: 25, title: "Costa e Var", note: "Piano, gruppi, resistere alla tentazione di spingere", grade_pct: 0.5, dplus_m: 80, kind: "flat" },
+    { leg: "bike", position: 2, km_from: 40, km_to: 55, title: "Col de Vence", note: "Circa 10 km al 6-7 %, regolare; pacing a 75-80 % FTP", grade_pct: 6.5, dplus_m: 650, kind: "climb" },
+    { leg: "bike", position: 3, km_from: 60, km_to: 78, title: "Col de l'Ecre via Gourdon", note: "Lungo e regolare, 5 % medio, esposto al sole", grade_pct: 5.0, dplus_m: 850, kind: "climb" },
+    { leg: "bike", position: 4, km_from: 80, km_to: 100, title: "Altipiano Caussols–Gréolières", note: "Vento, saliscendi, momento per mangiare e bere", grade_pct: 1.0, dplus_m: 250, kind: "plateau" },
+    { leg: "bike", position: 5, km_from: 100, km_to: 135, title: "Discesa tecnica", note: "Tornanti, asfalto misto: freni a disco, nessun gel in mano", grade_pct: -4.5, dplus_m: 0, kind: "descent" },
+    { leg: "bike", position: 6, km_from: 135, km_to: 180, title: "Rientro sulla costa", note: "Piano, vento frontale leggero, gambe da preparare alla corsa", grade_pct: 0.2, dplus_m: 60, kind: "flat" },
+    { leg: "run", position: 1, km_from: 0, km_to: 42.2, title: "Promenade des Anglais × 4", note: "Giri da 10,5 km piatti, inversione a cono, ristori ogni 2 km", grade_pct: 0, dplus_m: 40, kind: "loop" },
+    { leg: "swim", position: 1, km_from: 0, km_to: 3.8, title: "Baia degli Angeli", note: "Un giro rettangolare, ingresso dai ciottoli, corrente laterale debole", kind: "loop" },
+  ],
+  reviews: [
+    { edition_year: 2026, source: "synthesis", title: "Sintesi race report 2024-2026", scores: { swim: 4.3, bike: 4.8, run: 3.6, org: 4.1 },
+      body: "Il percorso bici è unanimemente il più bello d'Europa e il motivo per cui si torna. La corsa divide: chi arriva con le gambe la trova «un lungomare infinito con il tifo migliore», chi ha spinto in salita la racconta come «quattro giri di sopravvivenza». Il tema ricorrente è la nutrizione in discesa: molti dichiarano di aver smesso di mangiare per 45' tra Gréolières e la costa.",
+      sources_note: "14 fonti · blog, forum, video. Sintesi AI, nessuna frase attribuita a persone reali." },
+  ],
+  sources: [
+    { kind: "report", platform: "blog", url: "https://blog.stevegale.com/2024/06/nice-ironman-2024/", title: "Nice Ironman 2024 — race report", author: "Steve Gale", published_at: "2024-06-30", edition_year: 2024, lang: "en", excerpt: "Race report completo di un age-grouper: nuoto, salite, discesa e maratona sulla Promenade.", topics: ["bici", "discesa", "corsa", "caldo"], quality: 3 },
+    { kind: "official", platform: "pjammcycling", url: "https://pjammcycling.com/triathlon/148.IRONMAN-France-Nice-Bike-Course-and-Profile", title: "IRONMAN France Nice — bike course and profile", lang: "en", excerpt: "Profilo altimetrico e descrizione km per km della frazione bici.", topics: ["bici", "percorso", "dislivello"], quality: 3 },
+    { kind: "news", platform: "triathlete.com", url: "https://www.triathlete.com/ironman-world-championship-2024-nice/how-hard-was-the-ironman-world-championship-nice-bike-course-anyway/", title: "How hard was the Nice bike course, anyway?", author: "Triathlete", published_at: "2024-09-25", edition_year: 2024, lang: "en", excerpt: "Analisi del percorso bici con dati di potenza e confronto con Kona.", topics: ["bici", "dislivello", "pacing"], quality: 3 },
+    { kind: "blog", platform: "prommer.net", url: "https://prommer.net/en/training/triathlon/races/ironman-nice-2026/", title: "IRONMAN Nice 2026: race guide, mountain course & Kona slots", author: "Prommer", published_at: "2026-01-15", edition_year: 2026, lang: "en", excerpt: "Guida gara: iscrizioni, percorso, slot, logistica.", topics: ["logistica", "percorso", "slot"], quality: 2 },
+    { kind: "blog", platform: "tetsuo.com", url: "https://tetsuo.com/blogs/blog/ironman-nice-2025-pacing-plan-bike-marathon", title: "Ironman Nice 2025 pacing plan — 180 km bike & marathon strategy", author: "Tetsuo", published_at: "2025-06-01", edition_year: 2025, lang: "en", excerpt: "Piano di pacing per frazione, con potenza target in salita e strategia caldo in maratona.", topics: ["pacing", "bici", "corsa", "nutrizione"], quality: 3 },
+    { kind: "results", platform: "protriathletes.org", url: "https://stats.protriathletes.org/race/ironman-nice-world-championships/2025/results", title: "Risultati pro 2025 — Nice", author: "PTO stats", published_at: "2025-09-14", edition_year: 2025, lang: "en", excerpt: "Split pro per frazione, utili come riferimento di percorso.", topics: ["risultati", "split"], quality: 2 },
+    { kind: "news", platform: "coachcox.co.uk", url: "https://www.coachcox.co.uk/2025/09/17/mens-ironman-world-champs-2025-nice-race-analysis/", title: "Nice 2025 — race analysis", author: "Russell Cox", published_at: "2025-09-17", edition_year: 2025, lang: "en", excerpt: "Analisi statistica dei tempi per frazione e distribuzione dei finisher.", topics: ["risultati", "split", "statistiche"], quality: 3 },
+    { kind: "news", platform: "trirating.com", url: "https://www.trirating.com/mens-ironman-world-championships-nice-2025-analyzing-results/", title: "Nice 2025 — analyzing results", author: "Thorsten Radde", published_at: "2025-09-16", edition_year: 2025, lang: "en", excerpt: "Rating del percorso e confronto dei tempi con altre full distance.", topics: ["risultati", "split"], quality: 2 },
+    { kind: "forum", platform: "raceraves", url: "https://raceraves.com/races/ironman-france-nice/", title: "IRONMAN France Nice — recensioni atleti", author: "RaceRaves", lang: "en", excerpt: "Recensioni a stelline di age-grouper: organizzazione, percorso, esperienza.", topics: ["recensioni", "organizzazione"], quality: 2 },
+    { kind: "video", platform: "youtube", url: "https://www.youtube.com/watch?v=K8suFa2PfyQ", title: "Ironman World Champs raw race report", published_at: "2025-09-20", edition_year: 2025, lang: "en", excerpt: "Race report video dal giorno di gara a Nizza.", topics: ["racconto", "corsa", "bici"], quality: 2 },
+    { kind: "official", platform: "rouvy", url: "https://rouvy.com/en/ironman/france", title: "Il percorso bici di Nizza su ROUVY", author: "ROUVY", edition_year: 2027, lang: "en", excerpt: "Percorso ufficiale 2027 riprodotto per allenamento indoor: utile per studiare salite e discesa.", topics: ["bici", "allenamento", "percorso"], quality: 2 },
+  ],
+  media: [
+    { platform: "youtube", media_type: "video", url: "https://www.youtube.com/watch?v=K8suFa2PfyQ", embed_id: "K8suFa2PfyQ", caption: "Race report video dal giorno di gara a Nizza (2025)", thumbnail_url: "https://i.ytimg.com/vi/K8suFa2PfyQ/hqdefault.jpg", edition_year: 2025, leg: "course", featured: true },
+  ],
+  harvest: {
+    hashtags: ["ironmanfrance", "ironmannice", "ironmanfrancenice", "imnice"],
+    youtube: ["Ironman Nice race report", "Ironman France Nice bike course", "Ironman Nice 2025", "Ironman Nice 2024 age group", "Ironman Nizza"],
+    google: ["Ironman Nice race report", "Ironman France Nice recensione gara", "Ironman Nice bike course Col de l'Ecre", "Ironman Nizza racconto"],
+    years: [2023, 2024, 2025, 2026],
+  },
+};
+export default seed;

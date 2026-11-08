@@ -1,0 +1,33 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": [
+    "fra1"
+  ],
+  "crons": [
+    {
+      "path": "/api/ai/weekly",
+      "schedule": "0 18 * * 0"
+    },
+    {
+      "path": "/api/ai/adaptive",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/site/magazine?cron=1",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/ai/watch",
+      "schedule": "15 6-22 * * *"
+    },
+    {
+      "path": "/api/ai/digest",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/ai/evening",
+      "schedule": "30 19 * * *"
+    }
+  ]
+}

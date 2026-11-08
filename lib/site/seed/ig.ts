@@ -1,0 +1,50 @@
+import ig_jesolo_703_2027 from "./jesolo-703-2027-ig.json";
+import ig_stpolten_703_2027 from "./stpolten-703-2027-ig.json";
+import ig_aix_703_2027 from "./aix-703-2027-ig.json";
+import ig_alghero_703_2027 from "./alghero-703-2027-ig.json";
+import ig_switzerland_703_2027 from "./switzerland-703-2027-ig.json";
+import ig_sables_2027 from "./sables-2027-ig.json";
+import ig_elsinore_703_2027 from "./elsinore-703-2027-ig.json";
+import ig_vitoria_2027 from "./vitoria-2027-ig.json";
+import ig_vitoria_703_2027 from "./vitoria-703-2027-ig.json";
+import ig_leeds_2027 from "./leeds-2027-ig.json";
+import ig_kalmar_2027 from "./kalmar-2027-ig.json";
+import ig_copenhagen_2027 from "./copenhagen-2027-ig.json";
+import ig_zell_703_2027 from "./zell-703-2027-ig.json";
+import ig_duisburg_703_2027 from "./duisburg-703-2027-ig.json";
+import ig_erkner_703_2027 from "./erkner-703-2027-ig.json";
+import ig_wales_2027 from "./wales-2027-ig.json";
+import ig_cervia_703_2027 from "./cervia-703-2027-ig.json";
+import lanzarote from "./lanzarote-ig.json";
+import nizza from "./nizza-ig.json";
+import klagenfurt from "./klagenfurt-ig.json";
+import cervia from "./cervia-ig.json";
+import frankfurt from "./frankfurt-ig.json";
+import hamburg from "./hamburg-ig.json";
+
+export interface IgPost { shortCode: string; url: string; handle: string; date: string; year: number; likes: number; caption: string; img: string }
+export const IG_SEEDS: Record<string, IgPost[]> = {
+  "nizza-2027": nizza as IgPost[],
+  "lanzarote-2027": lanzarote as IgPost[],
+  "klagenfurt-2027": klagenfurt as IgPost[],
+  "cervia-2027": cervia as IgPost[],
+  "frankfurt-2027": frankfurt as IgPost[],
+  "hamburg-2027": hamburg as IgPost[],
+  "jesolo-703-2027": ig_jesolo_703_2027 as IgPost[],
+  "stpolten-703-2027": ig_stpolten_703_2027 as IgPost[],
+  "aix-703-2027": ig_aix_703_2027 as IgPost[],
+  "alghero-703-2027": ig_alghero_703_2027 as IgPost[],
+  "switzerland-703-2027": ig_switzerland_703_2027 as IgPost[],
+  "sables-2027": ig_sables_2027 as IgPost[],
+  "elsinore-703-2027": ig_elsinore_703_2027 as IgPost[],
+  "vitoria-2027": ig_vitoria_2027 as IgPost[],
+  "vitoria-703-2027": ig_vitoria_703_2027 as IgPost[],
+  "leeds-2027": ig_leeds_2027 as IgPost[],
+  "kalmar-2027": ig_kalmar_2027 as IgPost[],
+  "copenhagen-2027": ig_copenhagen_2027 as IgPost[],
+  "zell-703-2027": ig_zell_703_2027 as IgPost[],
+  "duisburg-703-2027": ig_duisburg_703_2027 as IgPost[],
+  "erkner-703-2027": ig_erkner_703_2027 as IgPost[],
+  "wales-2027": ig_wales_2027 as IgPost[],
+  "cervia-703-2027": ig_cervia_703_2027 as IgPost[],
+};

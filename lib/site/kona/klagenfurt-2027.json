@@ -1,0 +1,273 @@
+{
+ "race": "im-austria",
+ "edition": 2026,
+ "date": "2026",
+ "slots": 40,
+ "auto": 23,
+ "pool": 17,
+ "poolSplit": {
+  "M": 14,
+  "F": 3
+ },
+ "cutoffAgt": {
+  "M": "8:35:33",
+  "F": "9:48:26"
+ },
+ "rows": [
+  {
+   "division": "F18-24",
+   "gender": "F",
+   "finishers": 21,
+   "starters": 26,
+   "winner_s": 38362,
+   "winner": "10:39:22",
+   "poolCount": 0,
+   "poolCutoff": "10:16:36",
+   "factor": 0.9543
+  },
+  {
+   "division": "F25-29",
+   "gender": "F",
+   "finishers": 75,
+   "starters": 77,
+   "winner_s": 33695,
+   "winner": "9:21:35",
+   "poolCount": 0,
+   "poolCutoff": "9:49:29",
+   "factor": 0.9982
+  },
+  {
+   "division": "F30-34",
+   "gender": "F",
+   "finishers": 99,
+   "starters": 106,
+   "winner_s": 34960,
+   "winner": "9:42:40",
+   "poolCount": 0,
+   "poolCutoff": "9:48:26",
+   "factor": 1
+  },
+  {
+   "division": "F35-39",
+   "gender": "F",
+   "finishers": 33,
+   "starters": 34,
+   "winner_s": 35240,
+   "winner": "9:47:20",
+   "poolCount": 0,
+   "poolCutoff": "9:55:45",
+   "factor": 0.9877
+  },
+  {
+   "division": "F40-44",
+   "gender": "F",
+   "finishers": 26,
+   "starters": 27,
+   "winner_s": 38171,
+   "winner": "10:36:11",
+   "poolCount": 0,
+   "poolCutoff": "10:06:41",
+   "factor": 0.9699
+  },
+  {
+   "division": "F45-49",
+   "gender": "F",
+   "finishers": 39,
+   "starters": 43,
+   "winner_s": 36611,
+   "winner": "10:10:11",
+   "poolCount": 0,
+   "poolCutoff": "10:21:22",
+   "factor": 0.947
+  },
+  {
+   "division": "F50-54",
+   "gender": "F",
+   "finishers": 46,
+   "starters": 50,
+   "winner_s": 37996,
+   "winner": "10:33:16",
+   "poolCount": 2,
+   "poolCutoff": "10:50:08",
+   "factor": 0.9051
+  },
+  {
+   "division": "F55-59",
+   "gender": "F",
+   "finishers": 19,
+   "starters": 24,
+   "winner_s": 39063,
+   "winner": "10:51:03",
+   "poolCount": 1,
+   "poolCutoff": "11:19:05",
+   "factor": 0.8665
+  },
+  {
+   "division": "F60-64",
+   "gender": "F",
+   "finishers": 8,
+   "starters": 12,
+   "winner_s": 43759,
+   "winner": "12:09:19",
+   "poolCount": 0,
+   "poolCutoff": "12:11:47",
+   "factor": 0.8041
+  },
+  {
+   "division": "F65-69",
+   "gender": "F",
+   "finishers": 1,
+   "starters": 2,
+   "winner_s": 47773,
+   "winner": "13:16:13",
+   "poolCount": 0,
+   "poolCutoff": "12:53:38",
+   "factor": 0.7606
+  },
+  {
+   "division": "F75-79",
+   "gender": "F",
+   "finishers": 1,
+   "starters": 1,
+   "winner_s": 58684,
+   "winner": "16:18:04",
+   "poolCount": 0,
+   "poolCutoff": "15:56:48",
+   "factor": 0.615
+  },
+  {
+   "division": "M18-24",
+   "gender": "M",
+   "finishers": 218,
+   "starters": 224,
+   "winner_s": 31639,
+   "winner": "8:47:19",
+   "poolCount": 2,
+   "poolCutoff": "8:51:37",
+   "factor": 0.9698
+  },
+  {
+   "division": "M25-29",
+   "gender": "M",
+   "finishers": 395,
+   "starters": 411,
+   "winner_s": 30982,
+   "winner": "8:36:22",
+   "poolCount": 0,
+   "poolCutoff": "8:39:40",
+   "factor": 0.9921
+  },
+  {
+   "division": "M30-34",
+   "gender": "M",
+   "finishers": 461,
+   "starters": 478,
+   "winner_s": 30702,
+   "winner": "8:31:42",
+   "poolCount": 0,
+   "poolCutoff": "8:35:33",
+   "factor": 1
+  },
+  {
+   "division": "M35-39",
+   "gender": "M",
+   "finishers": 278,
+   "starters": 292,
+   "winner_s": 31439,
+   "winner": "8:43:59",
+   "poolCount": 0,
+   "poolCutoff": "8:41:02",
+   "factor": 0.9895
+  },
+  {
+   "division": "M40-44",
+   "gender": "M",
+   "finishers": 261,
+   "starters": 267,
+   "winner_s": 31318,
+   "winner": "8:41:58",
+   "poolCount": 0,
+   "poolCutoff": "8:52:26",
+   "factor": 0.9683
+  },
+  {
+   "division": "M45-49",
+   "gender": "M",
+   "finishers": 194,
+   "starters": 208,
+   "winner_s": 32511,
+   "winner": "9:01:51",
+   "poolCount": 0,
+   "poolCutoff": "9:08:24",
+   "factor": 0.9401
+  },
+  {
+   "division": "M50-54",
+   "gender": "M",
+   "finishers": 184,
+   "starters": 203,
+   "winner_s": 32210,
+   "winner": "8:56:50",
+   "poolCount": 6,
+   "poolCutoff": "9:32:43",
+   "factor": 0.9002
+  },
+  {
+   "division": "M55-59",
+   "gender": "M",
+   "finishers": 126,
+   "starters": 142,
+   "winner_s": 34263,
+   "winner": "9:31:03",
+   "poolCount": 2,
+   "poolCutoff": "9:54:51",
+   "factor": 0.8667
+  },
+  {
+   "division": "M60-64",
+   "gender": "M",
+   "finishers": 66,
+   "starters": 73,
+   "winner_s": 36109,
+   "winner": "10:01:49",
+   "poolCount": 2,
+   "poolCutoff": "10:24:01",
+   "factor": 0.8262
+  },
+  {
+   "division": "M65-69",
+   "gender": "M",
+   "finishers": 10,
+   "starters": 16,
+   "winner_s": 39400,
+   "winner": "10:56:40",
+   "poolCount": 1,
+   "poolCutoff": "11:22:41",
+   "factor": 0.7552
+  },
+  {
+   "division": "M70-74",
+   "gender": "M",
+   "finishers": 5,
+   "starters": 8,
+   "winner_s": 44434,
+   "winner": "12:20:34",
+   "poolCount": 1,
+   "poolCutoff": "12:29:48",
+   "factor": 0.6876
+  },
+  {
+   "division": "M75-79",
+   "gender": "M",
+   "finishers": 1,
+   "starters": 2,
+   "winner_s": 58828,
+   "winner": "16:20:28",
+   "poolCount": 0,
+   "poolCutoff": "12:41:45",
+   "factor": 0.6768
+  }
+ ],
+ "source": "CoachCox imstats (official IRONMAN timing), Kona Standard ironman.com",
+ "note": "estimate"
+}

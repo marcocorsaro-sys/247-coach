@@ -1,0 +1,32 @@
+name: rigenera-e-pubblica
+on:
+  workflow_dispatch:
+    inputs:
+      secret:
+        description: CRON_SECRET
+        required: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rigenera settimana per settimana e ripubblica
+        env:
+          S: ${{ github.event.inputs.secret }}
+        run: |
+          set -u
+          BASE=https://tabella-prototipo.vercel.app
+          # Una chiamata per SETTIMANA: per atleta intero si sfora il limite
+          # di 300s della funzione e la rigenerazione muore a meta'.
+          SETTIMANE="b9bda477-3e8d-45f2-9c7e-64ea4ceba099 8e206427-364e-4f61-972b-5e57dd83e0da a8a82fa4-f6f4-4710-9f99-f40abd1ad5d9 2087b82f-ed91-465c-9fd1-65b4906da0ad 6ab797a1-e8b2-408b-881c-bd71fa609b8c 3bb9ebe0-a6e1-454a-9c26-face2911171c fd445ecf-69f3-41a0-9071-acb42e4c969c 15aaa73b-11be-4c06-bad5-5f3efcba98f1 3d52c43c-290a-4fd6-99cb-b7772317024a 6e37e663-7ca2-44e9-99ae-fa3a66d063ea affed1b7-adb7-45d4-9f12-66c99bba9b89 cc9159d5-89ca-4475-9c66-d93c4d4e577c"
+          for W in $SETTIMANE; do
+            echo -n "week $W: "
+            curl -sS --max-time 290 "$BASE/api/ai/structure?secret=$S&week_id=$W&force=1" || echo FALLITO
+            echo
+          done
+          # Push finale: i tre atleti rigenerati piu' Antonio, che ha
+          # cancellato a mano i pianificati su Intervals.
+          for A in 0d870a23-1302-4c55-9d0b-a006d81009c6 dc6e697e-6cb5-4200-ad4c-05a4a66b7009 f0a3d7c9-8ff2-446f-8211-75a35b00228d 5e9ee2c4-b030-4628-83bc-8f44c1ba21be; do
+            echo -n "push $A: "
+            curl -sS --max-time 290 "$BASE/api/ai/push?secret=$S&athlete_id=$A" || echo FALLITO
+            echo
+          done
