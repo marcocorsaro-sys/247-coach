@@ -8,7 +8,7 @@ import { triageMessage, type Triage } from "@/lib/ai/triage";
 import { loadReadiness, readinessText } from "@/lib/server/readiness";
 import { recalcRunThresholds } from "@/lib/server/recalcThresholds";
 import { verifyCoachReply } from "@/lib/ai/verifyReply";
-import { tgSend } from "@/lib/notify/athlete";
+import { ownerCopyFromAthlete, tgSend } from "@/lib/notify/athlete";
 
 export async function coachName(athleteId: string): Promise<string> {
   const { data } = await createAdminClient().from("ai_athlete_profiles").select("coach_name").eq("athlete_id", athleteId).maybeSingle();
@@ -103,6 +103,8 @@ export async function handleCoachMessage(
     consumed_at: t.decision === "answer" ? new Date().toISOString() : null,
   } as never);
   if (error) throw new Error(error.message);
+  // Il webhook Telegram inoltra già al titolare; dall'app e da Claude/ChatGPT no.
+  if (source !== "telegram") await ownerCopyFromAthlete(athleteId, `${message.slice(0, 1500)}${source === "mcp" ? " [via Claude/ChatGPT]" : " [dall'app]"}`);
   // Idea o richiesta di una funzione che non c'è: va al team (Marco) subito.
   if (t.feature_request?.trim()) {
     const { data: pr } = await admin.from("profiles").select("full_name").eq("id", athleteId).maybeSingle();

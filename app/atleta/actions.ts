@@ -375,6 +375,20 @@ export async function toggleSessionDone(sessionId: string, done: boolean) {
  * cambiarne lo stato. La coach la legge in griglia e nel riquadro in cima
  * alla scheda dell'atleta.
  */
+/** Copia al titolare (Telegram) di note e sedute saltate, solo per atleti sotto osservazione. */
+async function ownerCopySession(athleteId: string, sessionId: string, what: string) {
+  try {
+    const { ownerCopyFromAthlete } = await import("@/lib/notify/athlete");
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { data } = await createAdminClient().from("sessions").select("title, day_of_week, training_weeks(week_start)").eq("id", sessionId).maybeSingle();
+    const s = data as { title: string | null; day_of_week: number; training_weeks: { week_start: string } | null } | null;
+    const d = s?.training_weeks ? new Date(`${s.training_weeks.week_start}T12:00:00Z`) : null;
+    if (d) d.setUTCDate(d.getUTCDate() + (s?.day_of_week ?? 0));
+    const day = d ? d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }) : "";
+    await ownerCopyFromAthlete(athleteId, `${what} su "${s?.title ?? "seduta"}" (${day})`);
+  } catch { /* mai bloccare l'atleta */ }
+}
+
 export async function setSessionNote(sessionId: string, note: string | null) {
   const { supabase, user, athleteId } = await me();
   if (!user) return;
@@ -388,6 +402,7 @@ export async function setSessionNote(sessionId: string, note: string | null) {
       { session_id: sessionId, athlete_id: athleteId!, athlete_note: clean } as never,
       { onConflict: "session_id,athlete_id" },
     );
+    await ownerCopySession(athleteId!, sessionId, `📝 nota: "${clean}"`);
   } else {
     const { data } = await supabase
       .from("session_logs")
@@ -432,6 +447,7 @@ export async function setSessionSkipped(sessionId: string, note: string | null) 
     } as never,
     { onConflict: "session_id,athlete_id" },
   );
+  await ownerCopySession(athleteId!, sessionId, `⏭️ seduta saltata${clean ? `: "${clean}"` : ""}`);
 
   revalidatePath("/atleta");
 }

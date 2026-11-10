@@ -19,7 +19,7 @@ const GIORNI_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 type Admin = ReturnType<typeof createAdminClient>;
 export type AthleteCtx = { athleteId: string; firstName: string; coach: string; lang: "it" | "en"; chatId: number | null; email: string | null; notifyPlan: boolean; notifyEvening: boolean };
 
-export async function tgSend(chatId: number | string, text: string): Promise<boolean> {
+async function tgRaw(chatId: number | string, text: string): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return false;
   const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -28,6 +28,49 @@ export async function tgSend(chatId: number | string, text: string): Promise<boo
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true }),
   }).catch(() => null);
   return !!r?.ok;
+}
+
+/** Atleti "sotto osservazione" (athlete_watch) per chat Telegram: ricevono copia al titolare. */
+async function watchedByChat(chatId: number | string): Promise<{ name: string; coach: string } | null> {
+  try {
+    const admin = createAdminClient();
+    const { data: ap } = await admin.from("ai_athlete_profiles").select("athlete_id, coach_name").eq("telegram_chat_id", chatId as never).maybeSingle();
+    const a = ap as { athlete_id: string; coach_name: string | null } | null;
+    if (!a) return null;
+    const { data: w } = await admin.from("athlete_watch" as never).select("athlete_id").eq("athlete_id", a.athlete_id).maybeSingle();
+    if (!w) return null;
+    const { data: p } = await admin.from("profiles").select("full_name").eq("id", a.athlete_id).maybeSingle();
+    return { name: (p as { full_name?: string | null } | null)?.full_name ?? "atleta", coach: a.coach_name?.trim() || "Coach" };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Invio Telegram. Se il destinatario è un atleta sotto osservazione, il titolare
+ * (TELEGRAM_CHAT_ID) riceve in copia tutto quello che il coach gli scrive.
+ */
+export async function tgSend(chatId: number | string, text: string): Promise<boolean> {
+  const ok = await tgRaw(chatId, text);
+  const owner = process.env.TELEGRAM_CHAT_ID;
+  if (ok && owner && String(chatId) !== String(owner)) {
+    const w = await watchedByChat(chatId);
+    if (w) await tgRaw(owner, `🤖 ${w.coach} → ${w.name}:\n\n${text}`.slice(0, 4000));
+  }
+  return ok;
+}
+
+/** Copia al titolare di un messaggio scritto dall'atleta (app o Claude/ChatGPT), se sotto osservazione. */
+export async function ownerCopyFromAthlete(athleteId: string, text: string): Promise<void> {
+  const owner = process.env.TELEGRAM_CHAT_ID;
+  if (!owner) return;
+  try {
+    const admin = createAdminClient();
+    const { data: w } = await admin.from("athlete_watch" as never).select("athlete_id").eq("athlete_id", athleteId).maybeSingle();
+    if (!w) return;
+    const { data: p } = await admin.from("profiles").select("full_name").eq("id", athleteId).maybeSingle();
+    await tgRaw(owner, `💬 ${(p as { full_name?: string | null } | null)?.full_name ?? "atleta"} → coach: ${text}`.slice(0, 4000));
+  } catch { /* mai bloccare */ }
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
