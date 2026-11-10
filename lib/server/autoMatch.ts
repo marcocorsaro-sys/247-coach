@@ -6,7 +6,6 @@
 // ============================================================================
 type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-const romeDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date(iso));
 const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const mondayOf = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
 
@@ -37,7 +36,7 @@ export async function autoMatchActivities(db: Db, athleteId: string, days = 4): 
     .order("start_date");
   const A = ((acts ?? []) as { start_date: string; discipline: string; name: string | null; distance_m: number | null; moving_time_s: number | null; average_heartrate: number | null }[]).filter((a) => (a.moving_time_s ?? 0) >= 180);
   if (!A.length) return 0;
-  const firstDay = romeDay(A[0].start_date);
+  const firstDay = A[0].start_date.slice(0, 10);
   const { data: wks } = await db.from("training_weeks").select("id, week_start").eq("athlete_id", athleteId).eq("status", "published").gte("week_start", mondayOf(firstDay));
   const W = (wks ?? []) as { id: string; week_start: string }[];
   if (!W.length) return 0;
@@ -56,7 +55,7 @@ export async function autoMatchActivities(db: Db, athleteId: string, days = 4): 
   let n = 0;
   const used = new Set<string>();
   for (const a of A) {
-    const day = romeDay(a.start_date);
+    const day = a.start_date.slice(0, 10); // ora locale salvata come UTC
     const s = S.find((x) => x.date === day && x.discipline === a.discipline && !logged.has(x.id) && !used.has(x.id));
     if (!s) continue;
     used.add(s.id);

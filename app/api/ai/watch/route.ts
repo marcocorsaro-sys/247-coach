@@ -114,7 +114,14 @@ export async function GET(req: Request) {
       if (done.has(a.icu_activity_id) || !a.start_date) continue;
       // Registrazioni di prova o partite per sbaglio (meno di 3 minuti): nessun messaggio.
       if (((a as { moving_time_s?: number | null }).moving_time_s ?? 0) < 180) continue;
+      // start_date è l'ora LOCALE dell'atleta salvata come UTC (start_date_local di Intervals):
+      // va letta in UTC, non convertita.
       const day = a.start_date.slice(0, 10);
+      // Orario esatto: inizio–fine, es. "mar 10 nov, 07:12–08:05".
+      const st = new Date(a.start_date);
+      const en = new Date(st.getTime() + (a.moving_time_s ?? 0) * 1000);
+      const hm = (x: Date) => x.toLocaleTimeString("it-IT", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
+      const when = `${st.toLocaleDateString("it-IT", { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" })}, ${hm(st)}–${hm(en)}`;
       const d = new Date(day + "T12:00:00Z");
       const dow = (d.getUTCDay() + 6) % 7;
       const monday = new Date(d.getTime() - dow * 86400000).toISOString().slice(0, 10);
@@ -127,7 +134,7 @@ export async function GET(req: Request) {
       const match = plan.find((p) => p.discipline === a.discipline) ?? null;
 
       const lines: string[] = [];
-      lines.push(`📊 ${name} · ${DISC_IT[a.discipline] ?? a.discipline} · ${day}`);
+      lines.push(`📊 ${name} · ${DISC_IT[a.discipline] ?? a.discipline} · ${when}`);
       lines.push(`Fatto: ${fmtDur(a.moving_time_s)}${a.distance_m ? ` · ${(a.distance_m / 1000).toFixed(a.discipline === "swim" ? 2 : 1)} km` : ""}${pace(a) ? ` · ${pace(a)}` : ""}${a.total_elevation_gain ? ` · D+ ${Math.round(a.total_elevation_gain)} m` : ""}`);
       const extra: string[] = [];
       if (a.average_heartrate) extra.push(`FC media ${Math.round(a.average_heartrate)}${f.lthr ? ` (${Math.round((a.average_heartrate / f.lthr) * 100)}% soglia)` : ""}`);
@@ -160,7 +167,7 @@ export async function GET(req: Request) {
       const text = lines.join("\n");
       out.push({ athlete: name, act: a.icu_activity_id, text });
       // Messaggio all'atleta dal suo coach (Telegram), in seconda persona.
-      const mine: string[] = [`👏 <b>${coach}</b>: ho visto ${DISC_ACT[a.discipline] ?? "l'allenamento"} di ${day === new Date().toISOString().slice(0, 10) ? "oggi" : day}.`];
+      const mine: string[] = [`👏 <b>${coach}</b>: ho visto ${DISC_ACT[a.discipline] ?? "l'allenamento"} di ${day === new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date()) ? "oggi" : st.toLocaleDateString("it-IT", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" })} (${hm(st)}–${hm(en)}).`];
       mine.push(`${fmtDur(a.moving_time_s)}${a.distance_m ? ` · ${(a.distance_m / 1000).toFixed(a.discipline === "swim" ? 2 : 1)} km` : ""}${pace(a) ? ` · ${pace(a)}` : ""}${a.average_heartrate ? ` · FC ${Math.round(a.average_heartrate)}` : ""}${a.average_watts ? ` · ${Math.round(a.average_watts)} W` : ""}`);
       const adh = lines.find((l) => l.startsWith("Aderenza"));
       if (match) mine.push(`In tabella: ${match.title} (${match.volume_value ?? "—"})${adh ? ` · ${adh.replace("Aderenza ", "").replace(/ ✅$/, " ✅ perfetto")}` : ""}`);

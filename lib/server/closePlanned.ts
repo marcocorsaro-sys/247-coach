@@ -58,8 +58,8 @@ export async function closePastPlanned(db: Db, athleteId: string): Promise<{ ask
         const lines: string[] = [];
         for (const date of [...new Set(open.map((s) => s.date))].sort()) {
           const miss = open.filter((s) => s.date === date);
-          const did = A.filter((a) => romeDay(a.start_date) === date);
-          const didTxt = did.map((a) => `${a.name || NAME[a.discipline] || a.discipline} ${Math.round((a.moving_time_s ?? 0) / 60)}'${a.distance_m ? ` ${(a.distance_m / 1000).toFixed(a.discipline === "swim" ? 2 : 1)} km` : ""}`).join(", ");
+          const did = A.filter((a) => a.start_date.slice(0, 10) === date);
+          const didTxt = did.map((a) => `${a.name || NAME[a.discipline] || a.discipline} alle ${new Date(a.start_date).toLocaleTimeString("it-IT", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" })} ${Math.round((a.moving_time_s ?? 0) / 60)}'${a.distance_m ? ` ${(a.distance_m / 1000).toFixed(a.discipline === "swim" ? 2 : 1)} km` : ""}`).join(", ");
           for (const s of miss) {
             await db.from("session_logs").upsert({
               session_id: s.id,

@@ -66,7 +66,7 @@ export default async function TodayCard({ athleteId, t, coachName }: { athleteId
     admin.from("ai_athlete_profiles").select("shadow_plan").eq("athlete_id", athleteId).maybeSingle(),
   ]);
   const lastA = ((acts ?? []) as Act[]).filter((a) => (a.moving_time_s ?? 0) >= 180).slice(-1)[0];
-  const lastAct = lastA ? `${lastA.name || NAME[lastA.discipline] || lastA.discipline} ${new Date(lastA.start_date).toLocaleString("it-IT", { timeZone: "Europe/Rome", weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "";
+  const lastAct = lastA ? `${lastA.name || NAME[lastA.discipline] || lastA.discipline} ${new Date(lastA.start_date).toLocaleString("it-IT", { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "";
   const shadow = !!(aip as { shadow_plan?: boolean } | null)?.shadow_plan;
   let planned: Sess[] = [];
   if (wk) {
@@ -75,7 +75,7 @@ export default async function TodayCard({ athleteId, t, coachName }: { athleteId
   }
   const seen = new Set<string>();
   const done = ((acts ?? []) as Act[])
-    .filter((a) => romeDay(new Date(a.start_date)) === today && (a.distance_m || a.moving_time_s))
+    .filter((a) => a.start_date.slice(0, 10) === today && (a.distance_m || a.moving_time_s))
     .filter((a) => { const k = `${a.start_date.slice(0, 16)}|${a.discipline}`; if (seen.has(k)) return false; seen.add(k); return true; });
 
   if (!planned.length && !done.length) return null; // giorno di riposo e niente fatto: ci pensa la settimana

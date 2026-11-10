@@ -38,7 +38,7 @@ export async function handleCoachMessage(
     .order("start_date");
   const recentTxt = ((recent ?? []) as { start_date: string; discipline: string; name: string | null; moving_time_s: number | null; distance_m: number | null; average_heartrate: number | null; average_watts: number | null; training_load: number | null }[])
     .filter((a) => (a.moving_time_s ?? 0) >= 180)
-    .map((a) => `${new Date(a.start_date).toLocaleString("it-IT", { timeZone: "Europe/Rome", weekday: "short", hour: "2-digit", minute: "2-digit" })} ${a.discipline} ${a.name ?? ""} ${Math.round((a.moving_time_s ?? 0) / 60)}'${a.distance_m ? ` ${(a.distance_m / 1000).toFixed(1)} km` : ""}${a.average_heartrate ? ` FC ${Math.round(a.average_heartrate)}` : ""}${a.average_watts ? ` ${Math.round(a.average_watts)} W` : ""}${a.training_load ? ` carico ${Math.round(a.training_load)}` : ""}`)
+    .map((a) => `${new Date(a.start_date).toLocaleString("it-IT", { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit" })} ${a.discipline} ${a.name ?? ""} ${Math.round((a.moving_time_s ?? 0) / 60)}'${a.distance_m ? ` ${(a.distance_m / 1000).toFixed(1)} km` : ""}${a.average_heartrate ? ` FC ${Math.round(a.average_heartrate)}` : ""}${a.average_watts ? ` ${Math.round(a.average_watts)} W` : ""}${a.training_load ? ` carico ${Math.round(a.training_load)}` : ""}`)
     .join("; ");
   const todayLabel = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
   // Richiesta esplicita di ricalcolo soglie: lo facciamo davvero, dai dati.
@@ -69,7 +69,7 @@ export async function handleCoachMessage(
       .map((a) => {
         const s = a.moving_time_s ?? 0;
         const p = a.average_speed ? 1000 / Number(a.average_speed) : 0;
-        return `${new Date(a.start_date).toLocaleDateString("it-IT", { timeZone: "Europe/Rome", day: "numeric", month: "short", year: "numeric" })} ${new Date(a.start_date).toLocaleTimeString("it-IT", { timeZone: "Europe/Rome", hour: "2-digit", minute: "2-digit" })} [${label(Number(a.distance_m))}] "${a.name ?? ""}" ${(Number(a.distance_m) / 1000).toFixed(2)} km in ${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}'${String(s % 60).padStart(2, "0")}" a ${Math.floor(p / 60)}:${String(Math.round(p % 60)).padStart(2, "0")}/km${a.average_heartrate ? ` FC media ${Math.round(Number(a.average_heartrate))}` : " FC n.d."}`;
+        return `${new Date(a.start_date).toLocaleDateString("it-IT", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })} ${new Date(a.start_date).toLocaleTimeString("it-IT", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" })} [${label(Number(a.distance_m))}] "${a.name ?? ""}" ${(Number(a.distance_m) / 1000).toFixed(2)} km in ${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}'${String(s % 60).padStart(2, "0")}" a ${Math.floor(p / 60)}:${String(Math.round(p % 60)).padStart(2, "0")}/km${a.average_heartrate ? ` FC media ${Math.round(Number(a.average_heartrate))}` : " FC n.d."}`;
       });
     if (rows.length) historyTxt = `STORICO CORSE SU DISTANZE DA GARA, ultimi 3 anni (dati reali da Intervals; i nomi sono quelli dell'orologio e possono essere generici o sbagliati: riconosci le gare da data, ora e distanza, e se non sei sicuro di quale sia quella citata dall'atleta dillo e chiedi conferma; le distanze GPS sono spesso un po' più lunghe di quella ufficiale): ${rows.join("; ")}`;
   }
