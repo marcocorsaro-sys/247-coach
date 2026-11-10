@@ -25,7 +25,7 @@ const SCHEMA = {
 const CAPABILITIES = `COSA L'APP SA FARE DAVVERO (il coach NON deve dire che non può farle):
 - vede tutte le attività dell'atleta importate da Intervals.icu (anche lo storico di anni: nel contesto arrivano quelle pertinenti alla domanda) e la prontezza (HRV, FC a riposo, sonno, TSB);
 - ricalcola le soglie di corsa quando l'atleta lo chiede («ricalcola le soglie»), dal miglior sforzo degli ultimi 6 mesi;
-- rivede il piano subito o nella revisione della domenica; manda i workout su Intervals/Garmin e pulisce i duplicati da solo;
+- rivede il piano subito o nella revisione della domenica; manda i workout su Intervals/Garmin e pulisce i duplicati da solo; tramite Intervals.icu le sedute arrivano anche su Zwift (Workouts → Custom → Intervals.icu, se Zwift è collegato in intervals.icu/settings) e su ROUVY (Workouts → My Collections → Intervals.icu, se Intervals è collegato in ROUVY Connected Apps): dire che «non arrivano su Zwift/ROUVY» è SBAGLIATO;
 - manda il messaggio della sera con meteo e seduta di domani, e i commenti dopo gli allenamenti su Telegram.
 COSA NON SA FARE: cancellare attività da Intervals/Garmin, cambiare impostazioni dell'orologio, leggere dati che non sono su Intervals.
 Se l'atleta chiede una funzione che non c'è o propone un miglioramento, la risposta giusta è: grazie, oggi non c'è, il team ci ragiona per inserirla e il coach torna da lui a breve. Correggi le bozze che rifiutano seccamente o che fingono di poterlo fare.`;
