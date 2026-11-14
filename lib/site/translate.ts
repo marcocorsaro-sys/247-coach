@@ -4,7 +4,7 @@
 // per i contenuti, en per la UI. Nomi propri (gare, luoghi, marchi) invariati.
 // ============================================================================
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { generateStructured, AI_MODEL } from "@/lib/ai/claude";
+import { generateStructured, AI_MODEL, TRANSLATE_MODEL } from "@/lib/ai/claude";
 import { EN } from "@/lib/i18n/dict";
 import { LANG_NAME, type Lang } from "@/lib/i18n/config";
 import type { Race, RaceArticle, RaceReview, RaceSegment } from "@/lib/site/races";
@@ -20,7 +20,7 @@ export async function translateUi(admin: SupabaseClient, lang: Lang) {
   for (let i = 0; i < entries.length; i += CH) {
     const part = entries.slice(i, i + CH);
     const prompt = `Traduci i valori (campo v) di queste voci di interfaccia di un sito di gare di triathlon. Restituisci TUTTE le ${part.length} chiavi, con la stessa k.\n\n${JSON.stringify(part.map(([k, v]) => ({ k, v })))}`;
-    const r = await generateStructured<{ entries: { k: string; v: string }[] }>({ system: SYSTEM(lang), prompt, schema: ENTRIES_SCHEMA, effort: "medium", maxTokens: 30000 });
+    const r = await generateStructured<{ entries: { k: string; v: string }[] }>({ system: SYSTEM(lang), prompt, schema: ENTRIES_SCHEMA, effort: "medium", model: TRANSLATE_MODEL, maxTokens: 30000 });
     if (!r.ok || !r.data) return { ok: false as const, lang, error: r.error ?? "traduzione fallita" };
     for (const e of r.data.entries) if (e.k in EN && e.v) dict[e.k] = e.v;
   }
@@ -60,7 +60,7 @@ export async function translateRace(admin: SupabaseClient, race: Race, segments:
     reviews: reviews.filter((r) => r.source === "synthesis").map((r) => ({ id: r.id, title: r.title ?? "", body: r.body ?? "", sources_note: r.sources_note ?? "" })),
   };
   const prompt = `Traduci dall'italiano la scheda di questa gara. Il campo "name" è il nome della città/gara: usa l'esonimo corrente nella lingua di destinazione (es. Nizza → Nice in inglese/francese, Nizza in tedesco; Copenaghen → Copenhagen/København...). Mantieni gli stessi array con lo stesso numero di elementi e lo stesso ordine; in "segments" e "reviews" ricopia position/leg/id invariati.\n\n${JSON.stringify(src)}`;
-  const r = await generateStructured<RaceOut>({ system: SYSTEM(lang), prompt, schema: RACE_SCHEMA, effort: "medium", maxTokens: 20000 });
+  const r = await generateStructured<RaceOut>({ system: SYSTEM(lang), prompt, schema: RACE_SCHEMA, effort: "medium", model: TRANSLATE_MODEL, maxTokens: 20000 });
   if (!r.ok || !r.data) return { ok: false as const, lang, error: r.error ?? "traduzione fallita" };
   const d = r.data;
   const splits = (race.splits ?? []).map((s, i) => ({ ...s, goal: d.splits[i]?.goal ?? s.goal }));
@@ -86,7 +86,7 @@ export async function translateArticles(admin: SupabaseClient, articles: RaceArt
   for (const a of articles) {
     const r = await generateStructured<{ title: string; dek: string; body_md: string }>({
       system: SYSTEM(lang), prompt: `Traduci dall'italiano questo articolo (titolo, sottotitolo, corpo in markdown).\n\n${JSON.stringify({ title: a.title, dek: a.dek ?? "", body_md: a.body_md })}`,
-      schema: ART_SCHEMA, effort: "medium", maxTokens: 12000,
+      schema: ART_SCHEMA, effort: "medium", model: TRANSLATE_MODEL, maxTokens: 12000,
     });
     if (!r.ok || !r.data) { errors.push(`${a.slug}: ${r.error ?? "fallita"}`); continue; }
     const { error } = await admin.from("event_race_article_translations").upsert({ article_id: a.id, lang, title: r.data.title, dek: r.data.dek || null, body_md: r.data.body_md, model: r.model ?? AI_MODEL, updated_at: new Date().toISOString() }, { onConflict: "article_id,lang" });
@@ -102,7 +102,7 @@ export async function translatePlaces(admin: SupabaseClient, places: { id: strin
   const r = await generateStructured<{ items: { id: string; title: string; body: string }[] }>({
     system: SYSTEM(lang),
     prompt: `Traduci dall'italiano titolo e testo di queste schede pratiche (alberghi, arrivo, dove vedere la gara, percorsi per allenarsi). Restituisci lo stesso id per ogni scheda.\n\n${JSON.stringify(places.map((p) => ({ id: p.id, title: p.title, body: p.body ?? "" })))}`,
-    schema: PLACES_SCHEMA, effort: "medium", maxTokens: 16000,
+    schema: PLACES_SCHEMA, effort: "medium", model: TRANSLATE_MODEL, maxTokens: 16000,
   });
   if (!r.ok || !r.data) return { lang, done: 0, errors: [r.error ?? "fallita"] };
   const rows = r.data.items.filter((x) => places.some((p) => p.id === x.id)).map((x) => ({ place_id: x.id, lang, title: x.title, body: x.body || null }));

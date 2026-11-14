@@ -10,6 +10,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 export const AI_MODEL = "claude-fable-5";
+/** Traduzioni del sito: modello più economico (scelta di Marco, 14/11/2026). */
+export const TRANSLATE_MODEL = process.env.TRANSLATE_MODEL ?? "claude-sonnet-5-5";
 
 let _client: Anthropic | null = null;
 function client(): Anthropic {
@@ -41,10 +43,12 @@ export async function generateStructured<T>(opts: {
   maxTokens?: number;
   /** "high" (default) per i piani da zero; "medium" per le revisioni rapide. */
   effort?: "low" | "medium" | "high";
+  /** Modello diverso da AI_MODEL (es. traduzioni con un modello più economico). */
+  model?: string;
 }): Promise<AiCallResult<T>> {
   try {
     const stream = client().beta.messages.stream({
-      model: AI_MODEL,
+      model: opts.model ?? AI_MODEL,
       max_tokens: opts.maxTokens ?? 32000,
       betas: ["server-side-fallback-2026-07-01"],
       // Refusal dei classificatori → ritenta automaticamente su Opus.

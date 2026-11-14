@@ -8,7 +8,7 @@
 // Nessuna frase virgolettata attribuita a persone: si parafrasa e si cita.
 // ============================================================================
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { generateStructured } from "@/lib/ai/claude";
+import { generateStructured, TRANSLATE_MODEL } from "@/lib/ai/claude";
 import { LANG_NAME, type Lang } from "@/lib/i18n/config";
 import { raceSeg, type Race } from "@/lib/site/races";
 
@@ -115,7 +115,7 @@ export async function translateMagazine(admin: SupabaseClient, post: MagPost, la
     system: `Sei un traduttore madrelingua ${LANG_NAME[lang]} specializzato in triathlon. Traduci dall'italiano in modo naturale con il lessico degli atleti age-group locali; lascia invariati nomi di gare, luoghi, @handle, URL, numeri e tempi; mantieni il markdown; non aggiungere né togliere informazioni.`,
     prompt: JSON.stringify({ title: post.title, dek: post.dek ?? "", body_md: post.body_md }),
     schema: { type: "object", additionalProperties: false, required: ["title", "dek", "body_md"], properties: { title: { type: "string" }, dek: { type: "string" }, body_md: { type: "string" } } },
-    effort: "medium", maxTokens: 12000,
+    effort: "medium", maxTokens: 12000, model: TRANSLATE_MODEL,
   });
   if (!r.ok || !r.data) return { lang, ok: false, error: r.error ?? "fallita" };
   const { error } = await admin.from("site_magazine_translations").upsert({ post_id: post.id, lang, title: r.data.title, dek: r.data.dek || null, body_md: r.data.body_md, updated_at: new Date().toISOString() }, { onConflict: "post_id,lang" });
