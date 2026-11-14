@@ -56,26 +56,31 @@ export async function GET(req: Request) {
 
   const done = { races: 0, articles: 0, magazine: 0 };
   const errors: string[] = [];
-  for (const { r, l } of todoRace) {
-    if (left() < 60_000) break;
+  // 4 traduzioni in parallelo per giro: ~4 volte più veloce senza sforare i limiti dell'API.
+  const PAR = 4;
+  async function run<T>(items: T[], minLeft: number, fn: (x: T) => Promise<void>) {
+    for (let i = 0; i < items.length; i += PAR) {
+      if (left() < minLeft) break;
+      await Promise.all(items.slice(i, i + PAR).map((x) => fn(x).catch((e) => { errors.push((e as Error).message); })));
+    }
+  }
+  await run(todoRace, 70_000, async ({ r, l }) => {
     const [seg, rev] = await Promise.all([
       admin.from("event_race_segments").select("*").eq("race_id", r.id).order("leg").order("position"),
       admin.from("event_race_reviews").select("*").eq("race_id", r.id).eq("published", true),
     ]);
     const x = await translateRace(admin as never, r, (seg.data ?? []) as RaceSegment[], (rev.data ?? []) as RaceReview[], l);
     if (x.ok) done.races++; else errors.push(`race ${r.slug}/${l}: ${x.error}`);
-  }
-  for (const { a, l } of todoArt) {
-    if (left() < 40_000) break;
+  });
+  await run(todoArt, 45_000, async ({ a, l }) => {
     const x = await translateArticles(admin as never, [a], l);
     done.articles += x.done;
     errors.push(...x.errors.map((e) => `art/${l}: ${e}`));
-  }
-  for (const { p, l } of todoMag) {
-    if (left() < 40_000) break;
+  });
+  await run(todoMag, 45_000, async ({ p, l }) => {
     const x = await translateMagazine(admin as never, p, l);
     if (x.ok) done.magazine++; else errors.push(`mag ${p.slug}/${l}: ${x.error}`);
-  }
+  });
   if (errors.length) console.error("[translate-backfill]", errors.slice(0, 10));
   return NextResponse.json({ todo: counts, done, errors: errors.slice(0, 10), ms: Date.now() - t0 });
 }
