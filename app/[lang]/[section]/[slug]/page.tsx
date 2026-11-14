@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${raceTitle(r)} ${y} · ${t("race.courseKicker")}, ${t("rev.kicker").toLowerCase()}, ${t("tips.kicker").toLowerCase()} · 24/7 Coach`,
     description: r.intro ?? r.tagline ?? undefined,
-    alternates: { canonical: racePath(r, lang), languages: Object.fromEntries(LANGS.map((l) => [l, racePath(r, l)])) },
+    ...seoFor(lang, await availableLangs("event_race_translations", r.id), (l) => racePath(r, l)),
     openGraph: { title: `${raceTitle(r)} ${y}`, description: r.tagline ?? undefined, url: racePath(r, lang), type: "article", locale: OG_LOCALE[lang] },
   };
 }

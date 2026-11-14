@@ -6,6 +6,7 @@ import { getRaceBundle, racePath, raceSeg, raceTitle, slugFromPath } from "@/lib
 import { isLang, LANGS, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
+import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
 
 export const revalidate = 3600;
@@ -20,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const y = b.race.race_date?.slice(0, 4) ?? "";
   return {
     title: `${a.title} · ${raceTitle(b.race)} ${y} · 24/7 Coach`, description: a.dek ?? undefined,
-    alternates: { canonical: `${racePath(b.race, lang)}/${a.slug}`, languages: Object.fromEntries(LANGS.map((l) => [l, `${racePath(b.race, l)}/${a.slug}`])) },
+    ...seoFor(lang, await availableLangs("event_race_article_translations", (a as unknown as { id: string }).id), (l) => `${racePath(b.race, l)}/${a.slug}`),
     openGraph: { locale: OG_LOCALE[lang], type: "article" },
   };
 }

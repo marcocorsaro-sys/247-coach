@@ -19,8 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
       <head>
+        {/* Lingua del documento dalla URL (/de/…, /en/…): il layout radice è statico e non conosce [lang]. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){var l=location.pathname.split("/")[1];if(/^(en|it|de|fr|es|pt|nl|da|sv|no|fi|pl)$/.test(l))document.documentElement.lang=l==="no"?"nb":l;})();` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

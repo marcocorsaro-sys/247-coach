@@ -5,6 +5,7 @@ import { isAiCoachMode } from "@/lib/ai/mode";
 import { isLang, LANGS, OG_LOCALE, SOURCE_LANG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
+import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import { getPost } from "@/lib/site/magazine-read";
 import { magPath, ml } from "@/lib/site/magazine-i18n";
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isLang(lang)) return {};
   const p = await getPost(slug, lang);
   if (!p) return {};
-  return { title: `${p.title} · 24/7 Coach`, description: p.dek ?? undefined, alternates: { canonical: magPath(lang, slug), languages: Object.fromEntries(LANGS.map((x) => [x, magPath(x, slug)])) }, openGraph: { locale: OG_LOCALE[lang], type: "article" } };
+  return { title: `${p.title} · 24/7 Coach`, description: p.dek ?? undefined, ...seoFor(lang, await availableLangs("site_magazine_translations", (p as unknown as { id: string }).id), (x) => magPath(x, slug)), openGraph: { locale: OG_LOCALE[lang], type: "article" } };
 }
 
 function Table({ rows }: { rows: Finisher[] }) {
