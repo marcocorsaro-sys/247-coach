@@ -276,7 +276,11 @@ async function coachcoxSeries() {
   if (seriesCache) return seriesCache;
   const best = new Map<string, { half: boolean; id: number; name: string; year: number }>();
   for (const [path, half] of [["im", false], ["him", true]] as const) {
-    const h = await fetch(`https://www.coachcox.co.uk/imstats/${path}/`, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(25_000) }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+    let h = "";
+    for (let t = 0; t < 2 && !h.includes("Summary Stats for"); t++) {
+      h = await fetch(`https://www.coachcox.co.uk/imstats/${path}/`, { headers: { "user-agent": UA, accept: "text/html" }, signal: AbortSignal.timeout(40_000) }).then((r) => (r.ok ? r.text() : `HTTP ${r.status}`)).catch((e) => `ERR ${(e as Error).message}`);
+    }
+    if (!h.includes("Summary Stats for")) throw new Error(`stats list /${path}/: ${h.slice(0, 80)}`);
     for (const m of h.matchAll(/imstats\/race\/(\d+)\/"\s+title="Summary Stats for (?:Ironman|IRONMAN)\s+(?:70\.3\s+)?([^"]+?)\s+(20\d\d)"/g)) {
       const name = m[2].trim();
       if (/aqua ?bike|aquabike|swim|5150/i.test(name)) continue;
