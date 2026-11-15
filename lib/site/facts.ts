@@ -51,12 +51,24 @@ export interface Results {
 }
 
 // ---------------------------------------------------------------- geo
+// Gare il cui nome non è una località cercabile.
+const GEO_OVERRIDE: Record<string, string> = {
+  "eagleman": "Cambridge", "pennsylvania happy valley": "State College", "kraichgau": "Bad Schönborn",
+  "westfriesland": "Hoorn", "hawai`i": "Waikoloa", "world championship kona": "Kailua-Kona",
+  "washington tri-cities": "Kennewick", "northern california": "Santa Rosa", "japan south hokkaido": "Hokuto",
+  "nelson mandela bay": "Gqeberha", "desaru coast": "Desaru", "dallas-little elm": "Little Elm",
+};
 export async function geocode(r: Pick<Race, "city" | "country" | "name">): Promise<{ lat: number; lon: number; label: string } | null> {
-  for (const q of [r.city, r.name].filter(Boolean) as string[]) {
-    const d = await j(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=it&format=json`).catch(() => null);
+  const name = (r.name ?? "").replace(/`/g, "'").replace(/\b(70\.3|IRONMAN|World Championship)\b/gi, " ").replace(/\s+/g, " ").trim();
+  const words = name.split(" ");
+  const cands = [GEO_OVERRIDE[(r.name ?? "").toLowerCase()], r.city, name, ...name.split(/\s*[-–]\s*/), words.slice(1).join(" "), words[words.length - 1], words[0]]
+    .filter((x): x is string => !!x && x.length > 2);
+  for (const q of [...new Set(cands)]) {
+    const d = await j(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=en&format=json`).catch(() => null);
     const res = (d?.results ?? []) as { latitude: number; longitude: number; name: string; country?: string; admin1?: string }[];
     if (!res.length) continue;
-    const hit = res.find((x) => r.country && x.country?.toLowerCase() === r.country.toLowerCase()) ?? res[0];
+    const hit = r.country ? res.find((x) => x.country?.toLowerCase() === r.country!.toLowerCase()) : res[0];
+    if (!hit) continue;
     return { lat: hit.latitude, lon: hit.longitude, label: [hit.name, hit.admin1, hit.country].filter(Boolean).join(", ") };
   }
   return null;
@@ -71,32 +83,37 @@ export async function climateFor(lat: number, lon: number, raceDate: string): Pr
   const now = new Date();
   const lastYear = now.getUTCFullYear() - 1;
   const firstYear = lastYear - 9;
-  const d = await j(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${firstYear}-01-01&end_date=${lastYear}-12-31&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_mean&timezone=auto`);
-  const D = d?.daily as Record<string, (number | null)[]> & { time: string[] };
-  if (!D?.time?.length) return null;
+  // Una richiesta piccola per anno (7 giorni): la richiesta unica di 10 anni pesa troppo per i limiti di Open-Meteo (429).
   const W = 3; // ±3 giorni attorno alla data gara
-  const inWin = (iso: string) => {
-    const y = Number(iso.slice(0, 4));
-    const target = Date.UTC(y, Number(md.slice(0, 2)) - 1, Number(md.slice(3, 5)));
-    return Math.abs(Date.parse(`${iso}T00:00:00Z`) - target) <= W * 864e5;
-  };
-  const idx = D.time.map((t, i) => (inWin(t) ? i : -1)).filter((i) => i >= 0);
-  const val = (k: string) => idx.map((i) => D[k]?.[i]).filter((x): x is number => typeof x === "number");
-  const tmax = val("temperature_2m_max"), tmin = val("temperature_2m_min"), pr = val("precipitation_sum"), wd = val("wind_speed_10m_max"), gu = val("wind_gusts_10m_max"), hu = val("relative_humidity_2m_mean");
-  if (!tmax.length) return null;
+  const vars = "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,wind_gusts_10m_max,relative_humidity_2m_mean";
+  const tmax: number[] = [], tmin: number[] = [], pr: number[] = [], wd: number[] = [], gu: number[] = [], hu: number[] = [];
   const byYear: Climate["by_year"] = [];
-  for (let y = firstYear; y <= lastYear; y++) {
+  let fails = 0;
+  for (let y = lastYear; y >= firstYear; y--) {
+    const c = Date.UTC(y, Number(md.slice(0, 2)) - 1, Number(md.slice(3, 5)));
+    const s = new Date(c - W * 864e5).toISOString().slice(0, 10), e = new Date(c + W * 864e5).toISOString().slice(0, 10);
+    let d: { daily?: Record<string, (number | null)[]> & { time: string[] } } | null = null;
+    try { d = await j(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${s}&end_date=${e}&daily=${vars}&timezone=auto`); }
+    catch (err) { if (++fails >= 3) throw err; await new Promise((r) => setTimeout(r, 1500)); continue; }
+    const D = d?.daily;
+    if (!D?.time?.length) continue;
+    const num = (k: string) => (D[k] ?? []).filter((x): x is number => typeof x === "number");
+    tmax.push(...num("temperature_2m_max")); tmin.push(...num("temperature_2m_min")); pr.push(...num("precipitation_sum"));
+    wd.push(...num("wind_speed_10m_max")); gu.push(...num("wind_gusts_10m_max")); hu.push(...num("relative_humidity_2m_mean"));
     const i = D.time.indexOf(`${y}-${md}`);
-    if (i < 0) continue;
-    const g = (k: string) => Number(D[k]?.[i] ?? NaN);
-    byYear.push({ year: y, tmax: r1(g("temperature_2m_max")), tmin: r1(g("temperature_2m_min")), precip: r1(g("precipitation_sum")), wind: Math.round(g("wind_speed_10m_max")), gust: Math.round(g("wind_gusts_10m_max")) });
+    if (i >= 0) {
+      const g = (k: string) => Number(D[k]?.[i] ?? NaN);
+      byYear.push({ year: y, tmax: r1(g("temperature_2m_max")), tmin: r1(g("temperature_2m_min")), precip: r1(g("precipitation_sum")), wind: Math.round(g("wind_speed_10m_max")), gust: Math.round(g("wind_gusts_10m_max")) });
+    }
+    await new Promise((r) => setTimeout(r, 250));
   }
+  if (!tmax.length) return null;
   return {
     years: lastYear - firstYear + 1, window_days: W, month_day: md,
     tmax_avg: r1(avg(tmax)), tmin_avg: r1(avg(tmin)), tmax_hi: r1(Math.max(...tmax)), tmin_lo: r1(Math.min(...tmin)),
     rain_days_pct: Math.round((pr.filter((x) => x >= 1).length / pr.length) * 100), precip_avg_mm: r1(avg(pr)),
     wind_avg_kmh: Math.round(avg(wd)), gust_avg_kmh: Math.round(avg(gu)), humidity_avg: hu.length ? Math.round(avg(hu)) : null,
-    by_year: byYear.reverse(), source: "Open-Meteo Historical Weather API (ERA5)",
+    by_year: byYear, source: "Open-Meteo Historical Weather API (ERA5)",
   };
 }
 
@@ -280,6 +297,7 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
   const row: Facts = { ...(f ?? {}), race_id: r.id };
   const errs = ((f?.errors as Record<string, string> | undefined) ?? {}) as Record<string, string>;
   const save = async (patch: Record<string, unknown>, step: string) => {
+    delete errs[step.split(":")[0]];
     const { error } = await admin.from("event_race_facts").upsert({ ...patch, race_id: r.id, errors: errs, updated_at: new Date().toISOString() }, { onConflict: "race_id" });
     if (error) throw new Error(error.message);
     return step;
