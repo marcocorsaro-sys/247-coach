@@ -75,7 +75,10 @@ export async function geocode(r: Pick<Race, "city" | "country" | "name">): Promi
     .filter((x): x is string => !!x && x.length > 2);
   for (const q of [...new Set(cands)]) {
     const d = await j(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=en&format=json`).catch(() => null);
-    const res = (d?.results ?? []) as { latitude: number; longitude: number; name: string; country?: string; admin1?: string }[];
+    // solo località abitate (PPL*): niente stati, aeroporti o parchi omonimi
+    const res = ((d?.results ?? []) as { latitude: number; longitude: number; name: string; country?: string; admin1?: string; feature_code?: string }[])
+      .filter((x) => !x.feature_code || x.feature_code.startsWith("PPL"))
+      .filter((x) => norm(x.name).includes(norm(q).slice(0, 5)) || norm(q).includes(norm(x.name)));
     if (!res.length) continue;
     const want = r.country ? (COUNTRY_EN[r.country.toLowerCase()] ?? r.country).toLowerCase() : null;
     const hit = want ? res.find((x) => x.country?.toLowerCase() === want) : res[0];
