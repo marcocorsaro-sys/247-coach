@@ -52,22 +52,33 @@ export interface Results {
 
 // ---------------------------------------------------------------- geo
 // Gare il cui nome non è una località cercabile.
+// Nomi paese in italiano o varianti → nome inglese usato da Open-Meteo.
+const COUNTRY_EN: Record<string, string> = {
+  spagna: "Spain", germania: "Germany", italia: "Italy", "regno unito": "United Kingdom", danimarca: "Denmark", svezia: "Sweden",
+  svizzera: "Switzerland", francia: "France", "türkiye": "Turkey", turchia: "Turkey", "chinese taipei": "Taiwan", austria: "Austria",
+  portogallo: "Portugal", "paesi bassi": "Netherlands", olanda: "Netherlands", belgio: "Belgium", polonia: "Poland", finlandia: "Finland",
+  norvegia: "Norway", grecia: "Greece", croazia: "Croatia", slovenia: "Slovenia", estonia: "Estonia", ungheria: "Hungary", "repubblica ceca": "Czechia",
+  "stati uniti": "United States", "united states of america": "United States", usa: "United States", messico: "Mexico", brasile: "Brazil",
+  cina: "China", giappone: "Japan", "sudafrica": "South Africa", "nuova zelanda": "New Zealand", irlanda: "Ireland", "emirati arabi uniti": "United Arab Emirates",
+  marocco: "Morocco", egitto: "Egypt", argentina: "Argentina", cile: "Chile", "corea del sud": "South Korea", "south korea": "South Korea",
+};
 const GEO_OVERRIDE: Record<string, string> = {
   "eagleman": "Cambridge", "pennsylvania happy valley": "State College", "kraichgau": "Bad Schönborn",
   "westfriesland": "Hoorn", "hawai`i": "Waikoloa", "world championship kona": "Kailua-Kona",
   "washington tri-cities": "Kennewick", "northern california": "Santa Rosa", "japan south hokkaido": "Hokuto",
-  "nelson mandela bay": "Gqeberha", "desaru coast": "Desaru", "dallas-little elm": "Little Elm",
+  "nelson mandela bay": "Gqeberha", "desaru coast": "Desaru", "dallas-little elm": "Little Elm", "switzerland": "Rapperswil", "wales": "Tenby", "erkner": "Erkner",
 };
 export async function geocode(r: Pick<Race, "city" | "country" | "name">): Promise<{ lat: number; lon: number; label: string } | null> {
   const name = (r.name ?? "").replace(/`/g, "'").replace(/\b(70\.3|IRONMAN|World Championship)\b/gi, " ").replace(/\s+/g, " ").trim();
   const words = name.split(" ");
-  const cands = [GEO_OVERRIDE[(r.name ?? "").toLowerCase()], r.city, name, ...name.split(/\s*[-–]\s*/), words.slice(1).join(" "), words[words.length - 1], words[0]]
+  const cands = [GEO_OVERRIDE[(r.name ?? "").toLowerCase()], r.city?.split(/\s*[·,]\s*/)[0], r.city, name, ...name.split(/\s*[-–]\s*/), words.slice(1).join(" "), words[words.length - 1], words[0]]
     .filter((x): x is string => !!x && x.length > 2);
   for (const q of [...new Set(cands)]) {
     const d = await j(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=en&format=json`).catch(() => null);
     const res = (d?.results ?? []) as { latitude: number; longitude: number; name: string; country?: string; admin1?: string }[];
     if (!res.length) continue;
-    const hit = r.country ? res.find((x) => x.country?.toLowerCase() === r.country!.toLowerCase()) : res[0];
+    const want = r.country ? (COUNTRY_EN[r.country.toLowerCase()] ?? r.country).toLowerCase() : null;
+    const hit = want ? res.find((x) => x.country?.toLowerCase() === want) : res[0];
     if (!hit) continue;
     return { lat: hit.latitude, lon: hit.longitude, label: [hit.name, hit.admin1, hit.country].filter(Boolean).join(", ") };
   }
