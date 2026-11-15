@@ -7,7 +7,7 @@
 // ============================================================================
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { stepFacts } from "@/lib/site/facts";
+import { importGoogleShops, stepFacts } from "@/lib/site/facts";
 import type { Race } from "@/lib/site/races";
 
 export const maxDuration = 300;
@@ -20,6 +20,7 @@ export async function GET(req: Request) {
   if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
   const t0 = Date.now();
   const admin = createAdminClient();
+  const shopsImported = await importGoogleShops(admin as never).catch(() => -1);
   const only = url.searchParams.get("race");
   let q = admin.from("event_races").select("*").eq("status", "published");
   if (only) q = q.eq("slug", only);
@@ -64,5 +65,5 @@ export async function GET(req: Request) {
     }
     if (!progressed) break;
   }
-  return NextResponse.json({ steps: done.length, done: done.slice(0, 60), ms: Date.now() - t0 });
+  return NextResponse.json({ shopsImported, steps: done.length, done: done.slice(0, 60), ms: Date.now() - t0 });
 }
