@@ -4,6 +4,7 @@ import { listRaces, racePath } from "@/lib/site/races";
 import { LANGS, racesPath, sitePath } from "@/lib/i18n/config";
 import { createPublicClient } from "@/lib/supabase/public";
 import { availableLangsMap, hasLang } from "@/lib/site/seoLangs";
+import { TOPIC_FACET, facetPath, facetsFor } from "@/lib/site/facets";
 
 export const revalidate = 3600;
 
@@ -29,11 +30,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     out.push({ url: `${base}/${lang}/magazine`, changeFrequency: "daily", priority: 0.8 });
     for (const m of (mag ?? []) as { id: string; slug: string; updated_at: string }[]) if (hasLang(magTr, m.id, lang)) out.push({ url: `${base}/${lang}/magazine/${m.slug}`, lastModified: m.updated_at, changeFrequency: "weekly", priority: 0.6 });
   }
-  const { data } = await createPublicClient().from("event_race_articles").select("id,slug,race_id,updated_at").eq("published", true);
-  const byId = new Map(races.map((r) => [r.id, r]));
-  for (const a of (data ?? []) as { id: string; slug: string; race_id: string; updated_at: string }[]) {
-    const r = byId.get(a.race_id);
-    if (r) for (const lang of LANGS) if (hasLang(artTr, a.id, lang)) out.push({ url: `${base}${racePath(r, lang)}/${a.slug}`, lastModified: a.updated_at, changeFrequency: "monthly", priority: 0.6 });
+  // Pagine facet (percorso nuoto/bici/corsa, giorno gara, viaggio): URL parlanti tradotti.
+  const sb = createPublicClient();
+  const [{ data: arts }, { data: rx }, { data: pl }] = await Promise.all([
+    sb.from("event_race_articles").select("id,topic,race_id,updated_at").eq("published", true),
+    sb.from("event_races").select("id,legs,splits,logistics").eq("status", "published"),
+    sb.from("event_race_places").select("race_id").eq("published", true),
+  ]);
+  const withPlaces = new Set(((pl ?? []) as { race_id: string }[]).map((x) => x.race_id));
+  const artsBy = new Map<string, { id: string; topic: string; updated_at: string }[]>();
+  for (const a of (arts ?? []) as { id: string; topic: string; race_id: string; updated_at: string }[]) {
+    if (!artsBy.has(a.race_id)) artsBy.set(a.race_id, []);
+    artsBy.get(a.race_id)!.push(a);
+  }
+  const extra = new Map(((rx ?? []) as { id: string; legs: unknown; splits: unknown; logistics: unknown }[]).map((x) => [x.id, x]));
+  for (const r of races) {
+    const x = extra.get(r.id);
+    if (!x) continue;
+    const ra = artsBy.get(r.id) ?? [];
+    const fs = facetsFor({ race: { legs: x.legs, splits: x.splits, logistics: x.logistics }, articles: ra, places: withPlaces.has(r.id) ? [1] : [] });
+    for (const lang of LANGS) {
+      if (!hasLang(raceTr, r.id, lang)) continue;
+      for (const f of fs) {
+        const a = ra.find((y) => TOPIC_FACET[y.topic] === f);
+        if (a && !hasLang(artTr, a.id, lang)) continue;
+        out.push({ url: `${base}${facetPath(racePath(r, lang), lang, f)}`, lastModified: a?.updated_at, changeFrequency: "monthly", priority: f === "bike" || f === "run" || f === "swim" ? 0.8 : 0.7 });
+      }
+    }
   }
   return out;
 }

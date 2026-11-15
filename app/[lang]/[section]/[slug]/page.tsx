@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { FACET_I18N, facetPath, facetsFor } from "@/lib/site/facets";
+import { SITE, breadcrumbLd, faqLd, orgLd, raceEventLd } from "@/lib/site/jsonld";
 import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { fmtDate, getRaceBundle, hasRichContent, listRaces, racePath, raceSeg, raceTitle, slugFromPath, weeksUntil } from "@/lib/site/races";
+import { fmtDate, getRaceBundleBySeg, hasRichContent, listRaces, racePath, raceSeg, raceTitle, weeksUntil } from "@/lib/site/races";
 import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { isAlpha, SiteFooter, SiteNav } from "@/components/site/SiteShell";
@@ -29,7 +31,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, section, slug } = await params;
   if (!isLang(lang) || section !== RACES_SEG[lang]) return {};
-  const b = await getRaceBundle(slugFromPath(slug), lang);
+  const b = await getRaceBundleBySeg(slug, lang);
   if (!b) return {};
   const r = b.race;
   const y = r.race_date?.slice(0, 4) ?? "";
@@ -50,7 +52,7 @@ export default async function RacePage({ params }: Props) {
   const { lang: l, section, slug } = await params;
   if (!isLang(l)) notFound();
   const lang: Lang = l;
-  const b = await getRaceBundle(slugFromPath(slug), lang);
+  const b = await getRaceBundleBySeg(slug, lang);
   if (!b) notFound();
   const { race: r, segments, reviews, sources, articles, media, places } = b;
   if (section !== RACES_SEG[lang] || slug !== raceSeg(r)) permanentRedirect(racePath(r, lang));
@@ -64,16 +66,13 @@ export default async function RacePage({ params }: Props) {
   const fmtKm = (n: number | null) => (n == null ? "" : n.toLocaleString(loc, { maximumFractionDigits: 1 }));
   const bikeSegs = segments.filter((s) => s.leg === "bike");
   const alt = Object.fromEntries(LANGS.map((x) => [x, racePath(r, x)]));
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://247coachai.com";
+  const facets = facetsFor(b);
   const jsonLd = [
-    { "@context": "https://schema.org", "@type": "SportsEvent", name: `${title} ${year}`, sport: "Triathlon", startDate: r.race_date ?? undefined,
-      eventStatus: r.date_confirmed ? "https://schema.org/EventScheduled" : undefined, inLanguage: lang,
-      location: { "@type": "Place", name: [r.city, r.region, r.country].filter(Boolean).join(", "), address: { "@type": "PostalAddress", addressLocality: r.city ?? undefined, addressCountry: r.country ?? undefined } },
-      description: r.intro ?? r.tagline ?? undefined, url: `${base}${racePath(r, lang)}` },
-    r.faq?.length ? { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: r.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) } : null,
-    { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
-      { "@type": "ListItem", position: 1, name: t("nav.races"), item: `${base}${racesPath(lang)}` },
-      { "@type": "ListItem", position: 2, name: `${title} ${year}`, item: `${base}${racePath(r, lang)}` } ] },
+    orgLd(),
+    raceEventLd(r, lang),
+    faqLd(r.faq),
+    breadcrumbLd([{ name: t("nav.races"), url: racesPath(lang) }, { name: `${title} ${year}`.trim(), url: racePath(r, lang) }]),
+    facets.length ? { "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${racePath(r, lang)}#guides`, name: `${title} – guides`, itemListElement: facets.map((f, i) => ({ "@type": "ListItem", position: i + 1, name: FACET_I18N[lang][f].label, url: `${SITE}${facetPath(racePath(r, lang), lang, f)}` })) } : null,
   ].filter(Boolean);
 
   const pm = pickMedia(media);
@@ -114,6 +113,11 @@ export default async function RacePage({ params }: Props) {
                 {weeks !== null ? <div className="ld-kpi"><b className="num">{weeks}</b><span>{t("race.weeks")}</span></div> : null}
               </div>
             )}
+            {facets.length ? (
+              <nav className="ld-cta" aria-label="guides" style={{ flexWrap: "wrap", marginTop: 14 }}>
+                {facets.map((f) => <Link key={f} className="btn btn-ghost btn-sm" href={facetPath(racePath(r, lang), lang, f)}>{FACET_I18N[lang][f].label}</Link>)}
+              </nav>
+            ) : null}
             <div className="ld-cta">
               <a className="btn btn-primary btn-lg" href={`/registrati?race=${encodeURIComponent(r.slug)}&lang=${lang}`}>{t("race.ctaPlan", { name: r.name })}</a>
               <a className="btn btn-ghost btn-lg" href="#recensioni">{t("race.ctaReviews")}</a>

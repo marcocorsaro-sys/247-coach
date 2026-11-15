@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { orgLd, websiteLd } from "@/lib/site/jsonld";
 import { notFound } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
 import { isLang, LANGS, OG_LOCALE, sitePath } from "@/lib/i18n/config";
@@ -32,5 +33,11 @@ export default async function LangHome({ params }: Props) {
   // Il sito si vede sempre, anche da loggati (dall'app si torna qui col link "← Sito";
   // chi digita 247coachai.com da loggato entra invece direttamente nell'app).
   const races = await listRaces(lang);
-  return <Landing races={races} lang={lang} />;
+  const ld = [orgLd(), websiteLd(lang)];
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <Landing races={races} lang={lang} />
+    </>
+  );
 }

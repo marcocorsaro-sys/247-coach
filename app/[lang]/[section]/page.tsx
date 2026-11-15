@@ -3,7 +3,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
 import { isLang, LANGS, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr } from "@/lib/i18n";
-import { listRaces } from "@/lib/site/races";
+import { listRaces, racePath, raceTitle } from "@/lib/site/races";
+import { SITE, breadcrumbLd, orgLd } from "@/lib/site/jsonld";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import RaceBrowser from "@/components/site/RaceBrowser";
 
@@ -42,8 +43,15 @@ export default async function RacesPage({ params }: Props) {
   const races = await listRaces(lang);
   const year = races[0]?.race_date?.slice(0, 4) ?? "";
   const alt = Object.fromEntries(LANGS.map((x) => [x, racesPath(x)]));
+  const ld = [
+    orgLd(),
+    { "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${racesPath(lang)}#races`, name: `${t("races.h1a")} ${t("races.h1b")}`, numberOfItems: races.length,
+      itemListElement: races.map((r, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}${racePath(r, lang)}`, name: `${raceTitle(r)} ${r.race_date?.slice(0, 4) ?? ""}`.trim() })) },
+    breadcrumbLd([{ name: "24/7 Coach", url: `/${lang}` }, { name: t("nav.races"), url: racesPath(lang) }]),
+  ];
   return (
     <div className="ld">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <SiteNav lang={lang} t={t} active="gare" altPaths={alt} />
       <main>
         <div className="ld-rhead">

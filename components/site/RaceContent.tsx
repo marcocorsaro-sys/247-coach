@@ -1,5 +1,6 @@
 // Sezioni "hub" della scheda gara: media social, articoli, fonti, con stati vuoti.
 import Link from "next/link";
+import { TOPIC_FACET, facetPath } from "@/lib/site/facets";
 import YtLite from "./YtLite";
 import type { RaceArticle, RaceMedia, RacePlace, RaceSource, Race } from "@/lib/site/races";
 import { racePath } from "@/lib/site/races";
@@ -188,7 +189,7 @@ export function ArticlesList({ race, articles, lang, t }: { race: Race; articles
         ) : (
           <div className="ld-arts">
             {articles.map((a) => (
-              <Link key={a.id} className="ld-card ld-art" href={`${racePath(race, lang)}/${a.slug}`}>
+              <Link key={a.id} className="ld-card ld-art" href={TOPIC_FACET[a.topic] ? facetPath(racePath(race, lang), lang, TOPIC_FACET[a.topic]) : `${racePath(race, lang)}/${a.slug}`}>
                 <span className="lab">{t(topicKey(a.topic))}{a.reading_min ? ` · ${t("art.min", { n: a.reading_min })}` : ""}{a.author_type === "ai" ? ` · ${t("art.ai")}` : ""}</span>
                 <h3>{a.title}</h3>
                 {a.dek ? <p>{a.dek}</p> : null}

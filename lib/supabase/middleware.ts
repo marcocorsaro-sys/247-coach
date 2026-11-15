@@ -64,6 +64,7 @@ export async function updateSession(request: NextRequest) {
     // non comparirebbe mai.
     path === "/icon" ||
     path === "/apple-icon" ||
+    path === "/opengraph-image" ||
     path === "/manifest.webmanifest";
 
   if (!user && !isPublic) {

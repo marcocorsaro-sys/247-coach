@@ -121,6 +121,12 @@ export async function listRaces(lang: Lang = SOURCE_LANG): Promise<Race[]> {
   return races.map((r) => applyTranslation(r, byId.get(r.id)));
 }
 
+/** Come getRaceBundle, partendo dal segmento URL (con o senza anno). */
+export async function getRaceBundleBySeg(seg: string, lang: Lang = SOURCE_LANG): Promise<RaceBundle | null> {
+  const slug = await resolveRaceSlug(seg);
+  return slug ? getRaceBundle(slug, lang) : null;
+}
+
 export async function getRaceBundle(slug: string, lang: Lang = SOURCE_LANG): Promise<RaceBundle | null> {
   const sb = createPublicClient();
   const { data: race, error } = await sb.from("event_races").select("*").eq("slug", slug).eq("status", "published").maybeSingle();
@@ -228,21 +234,33 @@ export function seriesPrefix(r: Pick<Race, "series" | "distance">): string {
   const s = SERIES_LABEL[r.series] ?? "";
   return s ? `${s.toLowerCase()}-${r.distance === "half" ? "703-" : ""}` : "";
 }
-/** Segmento URL della scheda gara (senza lingua/sezione): "ironman-nizza-2027". */
+/**
+ * Segmento URL della scheda gara, SENZA anno: "ironman-nizza", "ironman-703-alghero".
+ * URL stabili edizione dopo edizione (il valore SEO non si perde ogni anno);
+ * i vecchi URL con l'anno fanno redirect permanente.
+ */
 export function raceSeg(r: Pick<Race, "series" | "distance" | "slug">): string {
-  return `${seriesPrefix(r)}${r.slug.replace(/-703-/, "-")}`;
+  return `${seriesPrefix(r)}${r.slug.replace(/-703-/, "-").replace(/-\d{4}$/, "")}`;
 }
-/** Path pubblico della scheda gara nella lingua data: /de/rennen/ironman-nizza-2027. */
+/** Path pubblico della scheda gara nella lingua data: /de/rennen/ironman-nizza. */
 export function racePath(r: Pick<Race, "series" | "distance" | "slug">, lang: Lang = SOURCE_LANG): string {
   return `/${lang}/${RACES_SEG[lang]}/${raceSeg(r)}`;
 }
-/** Dato un segmento URL, lo slug DB (toglie il prefisso serie). */
+/** Dato un segmento URL, lo slug DB o la sua base senza anno (toglie il prefisso serie). */
 export function slugFromPath(seg: string): string {
   const m = /^(ironman|challenge)-(703-)?(.+)$/.exec(seg);
   if (!m) return seg;
   if (!m[2]) return m[3];
-  // 70.3: "ironman-703-alghero-2027" → "alghero-703-2027"
-  return m[3].replace(/-(\d{4})$/, "-703-$1");
+  // 70.3: "ironman-703-alghero-2027" → "alghero-703-2027"; senza anno → "alghero-703"
+  return /-\d{4}$/.test(m[3]) ? m[3].replace(/-(\d{4})$/, "-703-$1") : `${m[3]}-703`;
+}
+/** Segmento URL (con o senza anno) → slug DB dell'edizione più recente pubblicata. */
+export async function resolveRaceSlug(seg: string): Promise<string | null> {
+  const s = slugFromPath(seg);
+  if (!/^[a-z0-9-]+$/.test(s)) return null;
+  if (/-\d{4}$/.test(s)) return s;
+  const { data } = await createPublicClient().from("event_races").select("slug").like("slug", `${s}-____`).eq("status", "published").order("race_date", { ascending: false }).limit(1);
+  return ((data ?? []) as { slug: string }[])[0]?.slug ?? null;
 }
 /** Nome con serie, per titoli e H1: "Ironman Nizza", "Ironman 70.3 Alghero". */
 export function raceTitle(r: Pick<Race, "series" | "distance" | "name">): string {
