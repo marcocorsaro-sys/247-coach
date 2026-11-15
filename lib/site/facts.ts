@@ -151,28 +151,55 @@ function kmBetween(a: number, b: number, c: number, d: number) {
   const h = Math.sin(toR(c - a) / 2) ** 2 + Math.cos(toR(a)) * Math.cos(toR(c)) * Math.sin(toR(d - b) / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
 }
-export async function bikeShopsNear(lat: number, lon: number, radiusM = 25000): Promise<BikeShop[]> {
-  const q = `[out:json][timeout:25];(nwr["shop"="bicycle"](around:${radiusM},${lat},${lon});nwr["amenity"="bicycle_repair_station"](around:${Math.min(radiusM, 8000)},${lat},${lon}););out center tags 80;`;
-  // Più istanze Overpass: quella principale rifiuta spesso le richieste dai datacenter.
-  let d: { elements?: unknown[] } | null = null;
-  let last: unknown = null;
-  for (const ep of ["https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]) {
-    try { d = await j(ep, { method: "POST", body: new URLSearchParams({ data: q }), headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" } }); break; }
-    catch (e) { last = e; }
+type OsmEl = { lat?: number | string; lon?: number | string; center?: { lat: number; lon: number }; tags?: Record<string, string> };
+
+/** Nominatim (OSM) come riserva quando Overpass non risponde dai server di hosting. */
+async function nominatimShops(lat: number, lon: number): Promise<OsmEl[]> {
+  const dLat = 0.14, dLon = 0.14 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+  const vb = [lon - dLon, lat + dLat, lon + dLon, lat - dLat].map((x) => x.toFixed(4)).join(",");
+  const out: OsmEl[] = [];
+  for (const q of ["bicycle shop", "bicycle repair"]) {
+    const d = (await j(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&viewbox=${vb}&bounded=1&format=jsonv2&extratags=1&addressdetails=1&limit=40`, { headers: { accept: "application/json", "accept-language": "en" } })) as
+      { lat: string; lon: string; name?: string; display_name?: string; type?: string; extratags?: Record<string, string>; address?: Record<string, string> }[];
+    for (const x of d ?? []) {
+      const a = x.address ?? {};
+      out.push({ lat: x.lat, lon: x.lon, tags: { ...(x.extratags ?? {}), name: x.name || "", shop: x.type === "bicycle" ? "bicycle" : (x.extratags?.shop ?? ""), "addr:street": a.road ?? "", "addr:housenumber": a.house_number ?? "", "addr:postcode": a.postcode ?? "", "addr:city": a.city ?? a.town ?? a.village ?? "" } });
+    }
+    await new Promise((r) => setTimeout(r, 1100)); // policy Nominatim: max 1 richiesta al secondo
   }
-  if (!d) throw new Error(`overpass: ${(last as Error)?.message ?? "?"} ${((last as Error & { cause?: { code?: string } })?.cause?.code) ?? ""}`.trim());
-  const els = (d?.elements ?? []) as { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[];
+  return out;
+}
+
+export async function bikeShopsNear(lat: number, lon: number, radiusM = 20000): Promise<BikeShop[]> {
+  const q = `[out:json][timeout:15];(nwr["shop"="bicycle"](around:${radiusM},${lat},${lon});nwr["amenity"="bicycle_repair_station"](around:${Math.min(radiusM, 8000)},${lat},${lon}););out center tags 80;`;
+  // Più istanze Overpass (la principale rifiuta spesso i datacenter), poi Nominatim.
+  let els: OsmEl[] | null = null;
+  const errs: string[] = [];
+  for (const ep of ["https://overpass.private.coffee/api/interpreter", "https://overpass-api.de/api/interpreter"]) {
+    try {
+      const r = await fetch(ep, { method: "POST", body: new URLSearchParams({ data: q }), headers: { "user-agent": UA, "content-type": "application/x-www-form-urlencoded", accept: "application/json" }, signal: AbortSignal.timeout(18_000) });
+      if (!r.ok) throw new Error(String(r.status));
+      els = ((await r.json()) as { elements?: OsmEl[] }).elements ?? [];
+      break;
+    } catch (e) { errs.push(`${new URL(ep).host} ${(e as Error).message} ${((e as Error & { cause?: { code?: string } }).cause?.code) ?? ""}`.trim()); }
+  }
+  if (!els) {
+    try { els = await nominatimShops(lat, lon); } catch (e) { errs.push(`nominatim ${(e as Error).message}`); }
+  }
+  if (!els) throw new Error(errs.join(" | ").slice(0, 280));
   const shops: BikeShop[] = [];
+  const seen = new Set<string>();
   for (const e of els) {
     const t = e.tags ?? {};
-    const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon;
-    if (la == null || lo == null) continue;
+    const la = Number(e.lat ?? e.center?.lat), lo = Number(e.lon ?? e.center?.lon);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) continue;
     const station = t.amenity === "bicycle_repair_station";
-    const name = t.name ?? (station ? "Bicycle repair station" : null);
-    if (!name) continue;
+    const name = t.name || (station ? "Bicycle repair station" : null);
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
     const addr = [t["addr:street"] ? `${t["addr:street"]} ${t["addr:housenumber"] ?? ""}`.trim() : null, [t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" ") || null].filter(Boolean).join(", ") || null;
     shops.push({
-      name, address: addr, website: t.website ?? t["contact:website"] ?? null, phone: t.phone ?? t["contact:phone"] ?? null, hours: t.opening_hours ?? null,
+      name, address: addr, website: t.website || t["contact:website"] || null, phone: t.phone || t["contact:phone"] || null, hours: t.opening_hours || null,
       repair: station || t["service:bicycle:repair"] === "yes", rental: t["service:bicycle:rental"] === "yes" || t.rental === "yes",
       km: r1(kmBetween(lat, lon, la, lo)), lat: la, lon: lo,
     });
@@ -321,7 +348,7 @@ type Facts = Record<string, unknown> & { race_id: string };
 const DAY = 864e5;
 const old = (at: unknown, days: number) => !at || Date.now() - Date.parse(String(at)) > days * DAY;
 
-export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null, officialUrl: string | null): Promise<string | null> {
+export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null, officialUrl: string | null, opts: { skipShops?: boolean } = {}): Promise<string | null> {
   const row: Facts = { ...(f ?? {}), race_id: r.id };
   const errs = ((f?.errors as Record<string, string> | undefined) ?? {}) as Record<string, string>;
   const save = async (patch: Record<string, unknown>, step: string) => {
@@ -355,8 +382,7 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
     if (r.race_date && r.water_type === "mare" && old(row.water_at, 365)) {
       try { return save({ water: await waterFor(lat, lon, r.race_date), water_at: new Date().toISOString() }, "water"); } catch (e) { return fail("water", e); }
     }
-    if (old(row.shops_at, 90)) {
-      await new Promise((ok) => setTimeout(ok, 1500)); // cortesia verso Overpass
+    if (!opts.skipShops && old(row.shops_at, 90)) {
       try { return save({ bike_shops: await bikeShopsNear(lat, lon), shops_at: new Date().toISOString() }, "shops"); } catch (e) { return fail("shops", e); }
     }
     if (officialUrl && old(row.official_at, 30)) {

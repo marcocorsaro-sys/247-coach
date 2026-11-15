@@ -46,12 +46,15 @@ export async function GET(req: Request) {
   const R = ((races ?? []) as Race[]).sort((a, b) => (a.race_date ?? "9").localeCompare(b.race_date ?? "9"));
   if (url.searchParams.get("dry") === "1") return NextResponse.json({ races: R.length, facts: F.size, official: off.size });
   const done: string[] = [];
+  let shopRuns = 0;
   // più passaggi sulla lista finché c'è tempo: ogni gara fa un passo per passaggio
   for (let pass = 0; pass < 6 && Date.now() - t0 < BUDGET_MS; pass++) {
     let progressed = false;
     for (const r of R) {
       if (Date.now() - t0 > BUDGET_MS) break;
-      const step = await stepFacts(admin as never, r, (F.get(r.id) ?? null) as never, off.get(r.id) ?? null).catch((e) => `err:${(e as Error).message}`);
+      // i negozi sono lenti (Overpass/Nominatim): al massimo 6 per giro, il resto va avanti
+      const step = await stepFacts(admin as never, r, (F.get(r.id) ?? null) as never, off.get(r.id) ?? null, { skipShops: shopRuns >= 6 }).catch((e) => `err:${(e as Error).message}`);
+      if (step?.startsWith("shops")) shopRuns++;
       if (step) {
         progressed = true;
         done.push(`${r.slug}:${step}`);
