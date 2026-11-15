@@ -69,7 +69,7 @@ export async function generatePreview(admin: SupabaseClient, race: Race, opts: {
 }
 
 interface CcRow { n: string; c?: string; g?: string; di?: string; fs?: string; ot?: number | string }
-export const COACHCOX = (id: number | string) => `https://www.coachcox.co.uk/wp-json/imstats/v1.92/race/results/${id}`;
+export const COACHCOX = (id: number | string) => `https://www.coachcox.co.uk/wp-json/imstats/v1.93/race/results/${id}`;
 
 export async function loadResults(resultsId: number): Promise<NonNullable<MagData["results"]> | null> {
   const res = await fetch(COACHCOX(resultsId), { headers: { "user-agent": "Mozilla/5.0 247coach-magazine" } });

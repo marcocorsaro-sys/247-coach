@@ -240,28 +240,34 @@ export async function officialInfo(baseUrl: string): Promise<Official | null> {
 // ---------------------------------------------------------------- risultati (CoachCox)
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ironman|70\.3|\b703\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
-let seriesCache: { half: boolean; id: number; name: string }[] | null = null;
+let seriesCache: { half: boolean; id: number; name: string; year: number }[] | null = null;
+// Elenco delle gare CoachCox: /imstats/im/ (full) e /imstats/him/ (70.3), una riga per serie con l'ultima edizione.
 async function coachcoxSeries() {
   if (seriesCache) return seriesCache;
-  const out: { half: boolean; id: number; name: string }[] = [];
-  for (const [path, half] of [["im", false], ["703", true]] as const) {
+  const best = new Map<string, { half: boolean; id: number; name: string; year: number }>();
+  for (const [path, half] of [["im", false], ["him", true]] as const) {
     const h = await fetch(`https://www.coachcox.co.uk/imstats/${path}/`, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(25_000) }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
-    for (const m of h.matchAll(/href="[^"]*\/imstats\/series\/(\d+)\/?"[^>]*>([\s\S]*?)<\/a>/g)) {
-      const name = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-      if (name) out.push({ half, id: Number(m[1]), name });
+    for (const m of h.matchAll(/imstats\/race\/(\d+)\/"\s+title="Summary Stats for (?:Ironman|IRONMAN)\s+(?:70\.3\s+)?([^"]+?)\s+(20\d\d)"/g)) {
+      const name = m[2].trim();
+      if (/aqua ?bike|aquabike|swim|5150/i.test(name)) continue;
+      const k = `${half}|${name.toLowerCase()}`;
+      const y = Number(m[3]), id = Number(m[1]);
+      const cur = best.get(k);
+      if (!cur || y > cur.year || (y === cur.year && id > cur.id)) best.set(k, { half, id, name, year: y });
     }
   }
-  seriesCache = out;
-  return out;
+  seriesCache = [...best.values()];
+  return seriesCache;
 }
 
-export async function findCoachcoxSeries(r: Pick<Race, "name" | "city" | "distance">): Promise<number | null> {
+/** Ultima edizione con risultati su CoachCox della gara (match per nome, città o slug). */
+export async function findCoachcoxRace(r: Pick<Race, "name" | "city" | "distance" | "slug">): Promise<{ raceId: number; year: number } | null> {
   const all = (await coachcoxSeries()).filter((s) => s.half === (r.distance === "half"));
-  const keys = [norm(r.name), norm(r.city ?? "")].filter(Boolean);
-  const exact = all.find((s) => keys.includes(norm(s.name)));
-  if (exact) return exact.id;
-  const part = all.find((s) => keys.some((k) => k.length > 3 && (norm(s.name).includes(k) || k.includes(norm(s.name)))));
-  return part?.id ?? null;
+  const slugBase = r.slug.replace(/-?703/g, "").replace(/-20\d\d$/, "");
+  const keys = [norm(r.name), norm(r.city ?? ""), norm(slugBase)].filter((k) => k.length > 2);
+  const hit = all.find((s) => keys.includes(norm(s.name)))
+    ?? all.find((s) => keys.some((k) => k.length > 4 && (norm(s.name).includes(k) || k.includes(norm(s.name)))));
+  return hit ? { raceId: hit.id, year: hit.year } : null;
 }
 
 export async function latestCoachcoxRace(seriesId: number): Promise<{ raceId: number; year: number; slotsNote: string | null } | null> {
@@ -277,8 +283,12 @@ interface CcRow { n: string; c?: string; g?: string; di?: string; fs?: string; o
 const hms = (s: number) => `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
 export async function resultsFor(raceId: number, year: number, raceName: string, slotsNote: string | null): Promise<Results | null> {
-  const res = await fetch(COACHCOX(raceId), { headers: { "user-agent": UA }, signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) return null;
+  // La versione dell'API CoachCox cambia (v1.92 → v1.93...): la leggo dalla pagina risultati.
+  const page = `https://www.coachcox.co.uk/imstats/race/${raceId}/results/`;
+  const ph = await fetch(page, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(25_000) }).then((r) => (r.ok ? r.text() : "")).catch(() => "");
+  const api = /wp-json\/imstats\/v[\d.]+\/race\/results\/\d+/.exec(ph)?.[0];
+  const res = await fetch(api ? `https://www.coachcox.co.uk/${api}` : COACHCOX(raceId), { headers: { "user-agent": UA, referer: page }, signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`coachcox ${res.status}`);
   const jj = (await res.json()) as CcRow[] | { data?: CcRow[] };
   const rows: CcRow[] = Array.isArray(jj) ? jj : (jj.data ?? []);
   if (!rows.length) return null;
@@ -287,7 +297,7 @@ export async function resultsFor(raceId: number, year: number, raceName: string,
   const toF = (x: CcRow, pos?: number): Finisher => ({ name: x.n, country: x.c, div: x.di ?? "", time: hms(t(x)), secs: t(x), pos });
   const top = (g: "M" | "F") => {
     const pro = fin.filter((x) => x.di === `${g}PRO`).sort((a, b) => t(a) - t(b));
-    const pool = pro.length ? pro : fin.filter((x) => (x.g ?? x.di?.[0]) === g).sort((a, b) => t(a) - t(b));
+    const pool = pro.length ? pro : fin.filter((x) => (x.g?.[0] ?? x.di?.[0]) === g).sort((a, b) => t(a) - t(b));
     return pool.slice(0, 3).map((x, i) => toF(x, i + 1));
   };
   const by = new Map<string, CcRow>();
@@ -354,13 +364,11 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
     }
     if (old(row.results_at, 30)) {
       try {
-        const series = (row.coachcox_series as number | null) ?? (await findCoachcoxSeries(r));
-        if (!series) return save({ results_at: new Date().toISOString() }, "results:none");
-        const latest = await latestCoachcoxRace(series);
-        if (!latest) return save({ coachcox_series: series, results_at: new Date().toISOString() }, "results:none");
+        const latest = await findCoachcoxRace(r);
+        if (!latest) return save({ results_at: new Date().toISOString() }, "results:none");
         if (latest.raceId === row.coachcox_race && row.results) return save({ results_at: new Date().toISOString() }, "results:same");
-        const res = await resultsFor(latest.raceId, latest.year, r.name, latest.slotsNote);
-        return save({ coachcox_series: series, coachcox_race: latest.raceId, results_year: latest.year, results: res, results_at: new Date().toISOString() }, "results");
+        const res = await resultsFor(latest.raceId, latest.year, r.name, null);
+        return save({ coachcox_race: latest.raceId, results_year: latest.year, results: res, results_at: new Date().toISOString() }, "results");
       } catch (e) { return fail("results", e); }
     }
     return null;
