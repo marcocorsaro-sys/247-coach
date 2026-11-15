@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { getRaceBundleBySeg, racePath, raceSeg, raceTitle, raceTitleSeo, type RaceBundle, type RaceArticle } from "@/lib/site/races";
+import { getRaceBundleBySeg, getRaceFacts, racePath, raceSeg, raceTitle, raceTitleSeo, type RaceBundle, type RaceArticle } from "@/lib/site/races";
 import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
@@ -13,8 +13,10 @@ import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import { BikeProfile } from "@/components/site/BikeProfile";
 import { PlacesSections } from "@/components/site/RaceContent";
-import { FACET_I18N, FACET_UI, TOPIC_FACET, facetBySlug, facetBySlugAnyLang, facetPath, facetsFor, fillFacet, type Facet } from "@/lib/site/facets";
-import { articleLd, breadcrumbLd, faqLd, orgLd, placesLd, raceEventLd, segmentsLd, eventId } from "@/lib/site/jsonld";
+import { DATA_FACET_I18N, FACET_I18N, FACET_UI, TOPIC_FACET, dataFacetBySlug, dataFacetBySlugAnyLang, dataFacetPath, dataFacetsFor, facetBySlug, facetBySlugAnyLang, facetPath, facetsFor, fillData, fillFacet, type DataFacet, type Facet } from "@/lib/site/facets";
+import { DataFacetBody, type FactsRow } from "@/components/site/DataFacet";
+import { DATA_UI } from "@/lib/site/dataUi";
+import { SITE, articleLd, breadcrumbLd, climateDatasetLd, faqLd, offersLd, orgLd, placesLd, raceEventLd, resultsLd, segmentsLd, shopsLd, eventId } from "@/lib/site/jsonld";
 
 export const revalidate = 3600;
 type Props = { params: Promise<{ lang: string; section: string; slug: string; article: string }> };
@@ -42,6 +44,14 @@ function facetData(b: RaceBundle, lang: Lang, f: Facet) {
   return { art, title, desc, km, dplus };
 }
 
+function dataTitle(b: RaceBundle, lang: Lang, f: DataFacet, facts: FactsRow | null) {
+  const r = b.race;
+  const wc = r.distance === "half" ? "IRONMAN 70.3 World Championship" : "IRONMAN World Championship";
+  const v = { race: raceTitleSeo(r), year: facts?.results?.year ?? facts?.results_year ?? null, wc };
+  const txt = DATA_FACET_I18N[lang][f];
+  return { title: fillData(txt.title, v), desc: fillData(txt.desc, v) };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, section, slug, article } = await params;
   if (!isLang(lang) || section !== RACES_SEG[lang]) return {};
@@ -54,6 +64,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const artLangs = art ? await availableLangs("event_race_article_translations", art.id) : raceLangs;
     const avail = raceLangs.filter((l) => artLangs.includes(l));
     const path = (l: Lang) => facetPath(racePath(b.race, l), l, f);
+    return { title: `${title} · 24/7 Coach`, description: desc, ...seoFor(lang, avail, path), openGraph: { title, description: desc, url: path(lang), locale: OG_LOCALE[lang], type: "article" } };
+  }
+  const df = dataFacetBySlug(lang, article);
+  if (df) {
+    const facts = await getRaceFacts(b.race.id);
+    const { title, desc } = dataTitle(b, lang, df, facts);
+    const avail = await availableLangs("event_race_translations", b.race.id);
+    const path = (l: Lang) => dataFacetPath(racePath(b.race, l), l, df);
     return { title: `${title} · 24/7 Coach`, description: desc, ...seoFor(lang, avail, path), openGraph: { title, description: desc, url: path(lang), locale: OG_LOCALE[lang], type: "article" } };
   }
   const a = b.articles.find((x) => x.slug === article);
@@ -74,16 +92,25 @@ export default async function SubPage({ params }: Props) {
   const b = await getRaceBundleBySeg(slug, lang);
   if (!b) notFound();
   const facets = facetsFor(b);
+  const facts = await getRaceFacts(b.race.id);
+  const dfs = dataFacetsFor(facts as Record<string, unknown> | null, b.reviews.length);
 
   // 1) facet nella lingua giusta
   const f = facetBySlug(lang, article);
   if (f && facets.includes(f)) {
     if (section !== RACES_SEG[lang] || slug !== raceSeg(b.race)) permanentRedirect(facetPath(racePath(b.race, lang), lang, f));
-    return <FacetPage b={b} lang={lang} f={f} facets={facets} />;
+    return <FacetPage b={b} lang={lang} f={f} facets={facets} dfs={dfs} facts={facts} />;
+  }
+  const df = dataFacetBySlug(lang, article);
+  if (df && dfs.includes(df)) {
+    if (section !== RACES_SEG[lang] || slug !== raceSeg(b.race)) permanentRedirect(dataFacetPath(racePath(b.race, lang), lang, df));
+    return <DataPage b={b} lang={lang} f={df} facets={facets} dfs={dfs} facts={facts!} />;
   }
   // 2) slug di facet di un'altra lingua → facet nella lingua corrente
   const fx = facetBySlugAnyLang(article);
   if (fx && facets.includes(fx)) permanentRedirect(facetPath(racePath(b.race, lang), lang, fx));
+  const dfx = dataFacetBySlugAnyLang(article);
+  if (dfx && dfs.includes(dfx)) permanentRedirect(dataFacetPath(racePath(b.race, lang), lang, dfx));
   // 3) vecchio URL di un articolo-guida → il suo facet
   const a = b.articles.find((x) => x.slug === article);
   if (!a) notFound();
@@ -93,7 +120,7 @@ export default async function SubPage({ params }: Props) {
   return <ArticleView b={b} lang={lang} a={a} />;
 }
 
-async function FacetPage({ b, lang, f, facets }: { b: RaceBundle; lang: Lang; f: Facet; facets: Facet[] }) {
+async function FacetPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lang: Lang; f: Facet; facets: Facet[]; dfs: DataFacet[]; facts: FactsRow | null }) {
   const t = tr(await getDict(lang));
   const ui = FACET_UI[lang];
   const r = b.race;
@@ -133,7 +160,7 @@ async function FacetPage({ b, lang, f, facets }: { b: RaceBundle; lang: Lang; f:
 
   const jsonLd = [
     orgLd(),
-    raceEventLd(r, lang),
+    raceEventLd(r, lang, { offers: offersLd(facts?.official, `${SITE}${rp}`, facts?.official_at), geo: facts?.lat != null ? { lat: facts.lat, lon: facts.lon! } : null }),
     breadcrumbLd([
       { name: t("nav.races"), url: racesPath(lang) },
       { name: `${raceTitle(r)} ${year}`.trim(), url: rp },
@@ -158,6 +185,7 @@ async function FacetPage({ b, lang, f, facets }: { b: RaceBundle; lang: Lang; f:
             {kpis.length ? <div className="ld-kpis">{kpis.map((k) => <div className="ld-kpi" key={k.v + k.l}><b className="num">{k.v}</b><span>{k.l}</span></div>)}</div> : null}
             <nav className="ld-cta" aria-label={ui.other} style={{ flexWrap: "wrap" }}>
               {facets.filter((x) => x !== f).map((x) => <Link key={x} className="btn btn-ghost btn-sm" href={facetPath(rp, lang, x)}>{FACET_I18N[lang][x].label}</Link>)}
+              {dfs.map((x) => <Link key={x} className="btn btn-ghost btn-sm" href={dataFacetPath(rp, lang, x)}>{DATA_FACET_I18N[lang][x].label}</Link>)}
               <Link className="btn btn-ghost btn-sm" href={rp}>{ui.back}</Link>
             </nav>
           </div>
@@ -295,3 +323,112 @@ async function ArticleView({ b, lang, a }: { b: RaceBundle; lang: Lang; a: RaceA
   );
 }
 
+
+async function DataPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lang: Lang; f: DataFacet; facets: Facet[]; dfs: DataFacet[]; facts: FactsRow }) {
+  const t = tr(await getDict(lang));
+  const ui = FACET_UI[lang];
+  const du = DATA_UI[lang];
+  const r = b.race;
+  const rp = racePath(r, lang);
+  const url = dataFacetPath(rp, lang, f);
+  const year = r.race_date?.slice(0, 4) ?? "";
+  const { title, desc } = dataTitle(b, lang, f, facts);
+  const label = DATA_FACET_I18N[lang][f].label;
+  const alt = Object.fromEntries(LANGS.map((x) => [x, dataFacetPath(racePath(r, x), x, f)]));
+  const ev = eventId(r, lang);
+  const res = facts.results;
+  const faq = (r.faq ?? []).filter((x) => DATA_FAQ_RX[f].test(`${x.q} ${x.a}`)).slice(0, 6);
+
+  const jsonLd = [
+    orgLd(),
+    raceEventLd(r, lang, { offers: offersLd(facts.official, `${SITE}${rp}`, facts.official_at), geo: facts.lat != null ? { lat: facts.lat, lon: facts.lon! } : null }),
+    breadcrumbLd([{ name: t("nav.races"), url: racesPath(lang) }, { name: `${raceTitle(r)} ${year}`.trim(), url: rp }, { name: label, url }]),
+    articleLd({ url, headline: title, description: desc, lang, modified: (f === "results" ? facts.results_at : f === "weather" ? facts.climate_at : f === "bikeshops" ? facts.shops_at : facts.official_at) ?? null, about: ev, section: label }),
+    f === "results" && res ? resultsLd(url, `${raceTitle(r)} ${res.year} – ${du.agWinners}`, [...res.overall.M, ...res.overall.F, ...res.ag], ev) : null,
+    f === "bikeshops" ? shopsLd(url, `${raceTitle(r)} – ${label}`, facts.bike_shops ?? []) : null,
+    f === "weather" && facts.climate && facts.lat != null ? climateDatasetLd({ url, name: title, description: desc, lat: facts.lat, lon: facts.lon!, place: facts.geo_label ?? [r.city, r.country].filter(Boolean).join(", "), firstYear: Math.min(...facts.climate.by_year.map((y) => y.year)), lastYear: Math.max(...facts.climate.by_year.map((y) => y.year)), lang }) : null,
+    faqLd(faq),
+  ].filter(Boolean);
+
+  return (
+    <div className="ld">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <SiteNav lang={lang} t={t} active="gare" altPaths={alt} />
+      <main>
+        <div className="ld-rhead">
+          <div className="ld-wrap">
+            <nav className="ld-crumbs mono" aria-label="breadcrumb"><Link href={racesPath(lang)}>{t("nav.races")}</Link><span>›</span><Link href={rp}>{raceTitle(r)}</Link><span>›</span><span>{label}</span></nav>
+            <h1 style={{ marginTop: 8, fontSize: "clamp(2rem,5vw,3.4rem)" }}>{title}</h1>
+            <p className="ld-lead" style={{ maxWidth: "64ch" }}>{desc}</p>
+            <nav className="ld-cta" aria-label={ui.other} style={{ flexWrap: "wrap" }}>
+              {dfs.filter((x) => x !== f).map((x) => <Link key={x} className="btn btn-ghost btn-sm" href={dataFacetPath(rp, lang, x)}>{DATA_FACET_I18N[lang][x].label}</Link>)}
+              {facets.map((x) => <Link key={x} className="btn btn-ghost btn-sm" href={facetPath(rp, lang, x)}>{FACET_I18N[lang][x].label}</Link>)}
+              <Link className="btn btn-ghost btn-sm" href={rp}>{ui.back}</Link>
+            </nav>
+          </div>
+        </div>
+
+        {f === "reviews" ? (
+          <section className="ld-sec">
+            <div className="ld-wrap">
+              <p className="note">{t("rev.intro")}</p>
+              <div className="ld-rev" style={{ marginTop: 14 }}>
+                {b.reviews.map((rv) => (
+                  <div className="ld-card ld-rv" key={rv.id}>
+                    <div className="who"><b>{rv.title ?? (rv.source === "verified" ? t("rev.verified") : t("rev.review"))}</b><span className="src">{rv.source === "synthesis" ? rv.sources_note : rv.edition_year ? t("rev.edition", { y: rv.edition_year }) : ""}</span></div>
+                    {rv.scores ? <div className="ld-score">{Object.entries(rv.scores).slice(0, 6).map(([k, v]) => <div key={k}><span>{k}</span><b>{String(v)}</b></div>)}</div> : null}
+                    {rv.body ? <p>{rv.body}</p> : null}
+                    {rv.would_repeat != null ? <p className="src">{du.repeat}: {rv.would_repeat ? t("rev.yes") : t("rev.no")}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <DataFacetBody f={f} facts={facts} b={b} lang={lang} />
+        )}
+
+        {faq.length ? (
+          <section className="ld-sec">
+            <div className="ld-wrap">
+              <h2>{ui.faq}</h2>
+              {faq.map((x) => <details key={x.q} open className="ld-card" style={{ marginTop: 10 }}><summary><b>{x.q}</b></summary><p>{x.a}</p></details>)}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="ld-sec">
+          <div className="ld-wrap">
+            <h2>{ui.other}</h2>
+            <div className="ld-arts" style={{ marginTop: 12 }}>
+              {dfs.filter((x) => x !== f).map((x) => (
+                <Link key={x} className="ld-card ld-art" href={dataFacetPath(rp, lang, x)}>
+                  <span className="lab">{DATA_FACET_I18N[lang][x].label}</span>
+                  <h3>{dataTitle(b, lang, x, facts).title}</h3>
+                </Link>
+              ))}
+              {facets.map((x) => (
+                <Link key={x} className="ld-card ld-art" href={facetPath(rp, lang, x)}>
+                  <span className="lab">{FACET_I18N[lang][x].label}</span>
+                  <h3>{facetData(b, lang, x).title}</h3>
+                </Link>
+              ))}
+            </div>
+            <div className="ld-cta"><a className="btn btn-primary" href={`/registrati?race=${encodeURIComponent(r.slug)}&lang=${lang}`}>{t("race.ctaPlan", { name: r.name })}</a><Link className="btn btn-ghost" href={rp}>{ui.back}</Link></div>
+          </div>
+        </section>
+      </main>
+      <SiteFooter t={t} />
+    </div>
+  );
+}
+
+const DATA_FAQ_RX: Record<DataFacet, RegExp> = {
+  results: /risultat|result|vincit|winner|record|classific|ergebnis|résultat|resultado|uitslag|tulok|wynik/i,
+  registration: /iscri|regist|prezz|price|cost|anmeld|inscri|inschrij|tilmeld|anmäl|påmeld|ilmoit|zapis|quota|fee/i,
+  weather: /meteo|weather|caldo|heat|vento|wind|temperat|pioggia|rain|wetter|météo|clima|weer|vejr|väder|vær|sää|pogod|muta|wetsuit/i,
+  bikeshops: /meccanic|mechanic|negozi|shop|ricambi|spare|noleggi|rental|bike check|officin/i,
+  reviews: /recension|review|opinion|esperien|experience|erfahr|avis|ervaring|anmeld|omdöm|arvost|opini/i,
+  qualification: /slot|kona|nizza|nice|mondial|world champ|qualific|roll.?down|wm|mundial|vm|mm-|mś/i,
+  cutoffs: /cut.?off|cancell|tempo massim|time limit|zeitlimit|barrière|corte|tijdslimiet|tidsgræns|tidsgräns|tidsgrens|aikaraj|limit/i,
+};

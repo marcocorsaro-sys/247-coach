@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { FACET_I18N, facetPath, facetsFor } from "@/lib/site/facets";
-import { SITE, breadcrumbLd, faqLd, orgLd, raceEventLd } from "@/lib/site/jsonld";
+import { DATA_FACET_I18N, FACET_I18N, dataFacetPath, dataFacetsFor, facetPath, facetsFor } from "@/lib/site/facets";
+import { SITE, breadcrumbLd, faqLd, orgLd, raceEventLd, offersLd } from "@/lib/site/jsonld";
 import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { fmtDate, getRaceBundleBySeg, hasRichContent, listRaces, racePath, raceSeg, raceTitle, raceTitleSeo, weeksUntil } from "@/lib/site/races";
+import { fmtDate, getRaceBundleBySeg, getRaceFacts, hasRichContent, listRaces, racePath, raceSeg, raceTitle, raceTitleSeo, weeksUntil } from "@/lib/site/races";
 import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { isAlpha, SiteFooter, SiteNav } from "@/components/site/SiteShell";
@@ -67,12 +67,18 @@ export default async function RacePage({ params }: Props) {
   const bikeSegs = segments.filter((s) => s.leg === "bike");
   const alt = Object.fromEntries(LANGS.map((x) => [x, racePath(r, x)]));
   const facets = facetsFor(b);
+  const facts = await getRaceFacts(r.id);
+  const dfs = dataFacetsFor(facts as Record<string, unknown> | null, b.reviews.length);
+  const guides = [
+    ...facets.map((f) => ({ name: FACET_I18N[lang][f].label, url: facetPath(racePath(r, lang), lang, f) })),
+    ...dfs.map((f) => ({ name: DATA_FACET_I18N[lang][f].label, url: dataFacetPath(racePath(r, lang), lang, f) })),
+  ];
   const jsonLd = [
     orgLd(),
-    raceEventLd(r, lang),
+    raceEventLd(r, lang, { offers: offersLd(facts?.official, `${SITE}${racePath(r, lang)}`, facts?.official_at), geo: facts?.lat != null ? { lat: facts.lat, lon: facts.lon! } : null }),
     faqLd(r.faq),
     breadcrumbLd([{ name: t("nav.races"), url: racesPath(lang) }, { name: `${title} ${year}`.trim(), url: racePath(r, lang) }]),
-    facets.length ? { "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${racePath(r, lang)}#guides`, name: `${title} – guides`, itemListElement: facets.map((f, i) => ({ "@type": "ListItem", position: i + 1, name: FACET_I18N[lang][f].label, url: `${SITE}${facetPath(racePath(r, lang), lang, f)}` })) } : null,
+    guides.length ? { "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${racePath(r, lang)}#guides`, name: `${title} – guides`, itemListElement: guides.map((g, i) => ({ "@type": "ListItem", position: i + 1, name: g.name, url: `${SITE}${g.url}` })) } : null,
   ].filter(Boolean);
 
   const pm = pickMedia(media);
@@ -113,9 +119,9 @@ export default async function RacePage({ params }: Props) {
                 {weeks !== null ? <div className="ld-kpi"><b className="num">{weeks}</b><span>{t("race.weeks")}</span></div> : null}
               </div>
             )}
-            {facets.length ? (
+            {guides.length ? (
               <nav className="ld-cta" aria-label="guides" style={{ flexWrap: "wrap", marginTop: 14 }}>
-                {facets.map((f) => <Link key={f} className="btn btn-ghost btn-sm" href={facetPath(racePath(r, lang), lang, f)}>{FACET_I18N[lang][f].label}</Link>)}
+                {guides.map((g) => <Link key={g.url} className="btn btn-ghost btn-sm" href={g.url}>{g.name}</Link>)}
               </nav>
             ) : null}
             <div className="ld-cta">

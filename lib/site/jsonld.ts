@@ -36,7 +36,7 @@ export function eventId(r: Race, lang: Lang) {
 }
 
 /** SportsEvent completo: tre frazioni come subEvent, luogo con indirizzo, organizzatore. */
-export function raceEventLd(r: Race, lang: Lang) {
+export function raceEventLd(r: Race, lang: Lang, extra?: { offers?: unknown[]; geo?: { lat: number; lon: number } | null }) {
   const year = r.race_date?.slice(0, 4) ?? "";
   const title = `${raceTitle(r)} ${year}`.trim();
   const leg = (name: string, km: number | null, extra?: string) =>
@@ -61,7 +61,9 @@ export function raceEventLd(r: Race, lang: Lang) {
       "@id": `${eventId(r, lang)}-place`,
       name: [r.city, r.region, r.country].filter(Boolean).join(", "),
       address: { "@type": "PostalAddress", addressLocality: r.city ?? undefined, addressRegion: r.region ?? undefined, addressCountry: r.country ?? undefined },
+      geo: extra?.geo ? { "@type": "GeoCoordinates", latitude: extra.geo.lat, longitude: extra.geo.lon } : undefined,
     },
+    offers: extra?.offers?.length ? extra.offers : undefined,
     organizer: org ? { "@type": "Organization", name: org.name, url: org.url } : undefined,
     subEvent: [
       leg("Swim", r.swim_km, r.water_type ?? undefined),
@@ -139,4 +141,57 @@ export function placesLd(url: string, name: string, places: RacePlace[]) {
 export function faqLd(faq: { q: string; a: string }[] | null | undefined) {
   if (!faq?.length) return null;
   return { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) };
+}
+
+// ---------------------------------------------------------------- pagine dati
+type Tier = { name: string; price: number | null; currency: string | null; notes: string | null };
+/** Offer per SportsEvent.offers dai prezzi letti sulla pagina ufficiale. */
+export function offersLd(o: { price_tiers?: Tier[]; register_url?: string | null; status?: string | null } | null | undefined, fallbackUrl: string, checkedAt?: string | null) {
+  if (!o) return [];
+  const st = (o.status ?? "").toLowerCase();
+  const availability = /sold|esaur|full|closed|chius/.test(st) ? "https://schema.org/SoldOut" : /wait/.test(st) ? "https://schema.org/LimitedAvailability" : /open|apert/.test(st) ? "https://schema.org/InStock" : undefined;
+  return (o.price_tiers ?? []).filter((t) => t.price != null && t.currency).map((t) => ({
+    "@type": "Offer", name: t.name, price: t.price, priceCurrency: t.currency!.toUpperCase().slice(0, 3),
+    url: o.register_url ?? fallbackUrl, availability, validFrom: undefined, priceValidUntil: undefined,
+    category: "Entry", description: t.notes ?? undefined, ...(checkedAt ? { dateModified: checkedAt } : {}),
+  }));
+}
+
+type Shop = { name: string; address: string | null; website: string | null; phone: string | null; hours: string | null; repair: boolean; rental: boolean; lat: number; lon: number };
+export function shopsLd(url: string, name: string, shops: Shop[]) {
+  if (!shops.length) return null;
+  return {
+    "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${url}#shops`, name, numberOfItems: shops.length,
+    itemListElement: shops.map((x, i) => ({
+      "@type": "ListItem", position: i + 1,
+      item: {
+        "@type": "BikeStore", name: x.name, url: x.website ?? undefined, telephone: x.phone ?? undefined, openingHours: x.hours ?? undefined,
+        address: x.address ? { "@type": "PostalAddress", streetAddress: x.address } : undefined,
+        geo: { "@type": "GeoCoordinates", latitude: x.lat, longitude: x.lon },
+        hasMap: `https://www.openstreetmap.org/?mlat=${x.lat}&mlon=${x.lon}#map=17/${x.lat}/${x.lon}`,
+      },
+    })),
+  };
+}
+
+type Fin = { name: string; country?: string; div: string; time: string; pos?: number };
+export function resultsLd(url: string, name: string, rows: Fin[], event: string) {
+  if (!rows.length) return null;
+  return {
+    "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${url}#results`, name, numberOfItems: rows.length, about: { "@id": event },
+    itemListElement: rows.map((x, i) => ({
+      "@type": "ListItem", position: i + 1, name: `${x.div}: ${x.name} ${x.time}`,
+      item: { "@type": "Person", name: x.name, nationality: x.country ? { "@type": "Country", name: x.country } : undefined },
+    })),
+  };
+}
+
+export function climateDatasetLd(o: { url: string; name: string; description: string; lat: number; lon: number; place: string; firstYear: number; lastYear: number; lang: Lang }) {
+  return {
+    "@context": "https://schema.org", "@type": "Dataset", "@id": `${SITE}${o.url}#climate`, name: o.name, description: o.description, url: `${SITE}${o.url}`, inLanguage: o.lang,
+    creator: { "@id": ORG_ID }, isBasedOn: "https://open-meteo.com/en/docs/historical-weather-api", license: "https://creativecommons.org/licenses/by/4.0/",
+    temporalCoverage: `${o.firstYear}/${o.lastYear}`,
+    spatialCoverage: { "@type": "Place", name: o.place, geo: { "@type": "GeoCoordinates", latitude: o.lat, longitude: o.lon } },
+    variableMeasured: ["air temperature max", "air temperature min", "precipitation", "wind speed", "wind gusts", "relative humidity", "sea surface temperature"],
+  };
 }

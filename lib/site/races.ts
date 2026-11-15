@@ -273,3 +273,13 @@ export function raceTitle(r: Pick<Race, "series" | "distance" | "name">): string
   const s = SERIES_LABEL[r.series] ?? "";
   return [s, r.distance === "half" ? "70.3" : "", r.name].filter(Boolean).join(" ");
 }
+
+/** Fatti raccolti per le pagine dati (meteo, risultati, iscrizione, negozi bici...). */
+export async function getRaceFacts(raceId: string) {
+  const { data } = await createPublicClient()
+    .from("event_race_facts")
+    .select("lat,lon,geo_label,climate,climate_at,water,bike_shops,shops_at,official,official_url,official_at,results,results_year,results_at")
+    .eq("race_id", raceId)
+    .maybeSingle();
+  return data as import("@/components/site/DataFacet").FactsRow | null;
+}

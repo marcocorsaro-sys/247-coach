@@ -4,7 +4,7 @@ import { listRaces, racePath } from "@/lib/site/races";
 import { LANGS, racesPath, sitePath } from "@/lib/i18n/config";
 import { createPublicClient } from "@/lib/supabase/public";
 import { availableLangsMap, hasLang } from "@/lib/site/seoLangs";
-import { TOPIC_FACET, facetPath, facetsFor } from "@/lib/site/facets";
+import { TOPIC_FACET, dataFacetPath, dataFacetsFor, facetPath, facetsFor } from "@/lib/site/facets";
 
 export const revalidate = 3600;
 
@@ -32,11 +32,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
   // Pagine facet (percorso nuoto/bici/corsa, giorno gara, viaggio): URL parlanti tradotti.
   const sb = createPublicClient();
-  const [{ data: arts }, { data: rx }, { data: pl }] = await Promise.all([
+  const [{ data: arts }, { data: rx }, { data: pl }, { data: fx }, { data: rv }] = await Promise.all([
     sb.from("event_race_articles").select("id,topic,race_id,updated_at").eq("published", true),
     sb.from("event_races").select("id,legs,splits,logistics").eq("status", "published"),
     sb.from("event_race_places").select("race_id").eq("published", true),
+    sb.from("event_race_facts").select("race_id,climate,bike_shops,official,results,updated_at"),
+    sb.from("event_race_reviews").select("race_id").eq("published", true),
   ]);
+  const factsBy = new Map(((fx ?? []) as ({ race_id: string; updated_at: string } & Record<string, unknown>)[]).map((x) => [x.race_id, x]));
+  const revCount = new Map<string, number>();
+  for (const x of (rv ?? []) as { race_id: string }[]) revCount.set(x.race_id, (revCount.get(x.race_id) ?? 0) + 1);
   const withPlaces = new Set(((pl ?? []) as { race_id: string }[]).map((x) => x.race_id));
   const artsBy = new Map<string, { id: string; topic: string; updated_at: string }[]>();
   for (const a of (arts ?? []) as { id: string; topic: string; race_id: string; updated_at: string }[]) {
@@ -55,6 +60,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const a = ra.find((y) => TOPIC_FACET[y.topic] === f);
         if (a && !hasLang(artTr, a.id, lang)) continue;
         out.push({ url: `${base}${facetPath(racePath(r, lang), lang, f)}`, lastModified: a?.updated_at, changeFrequency: "monthly", priority: f === "bike" || f === "run" || f === "swim" ? 0.8 : 0.7 });
+      }
+      const fr = factsBy.get(r.id) ?? null;
+      for (const df of dataFacetsFor(fr, revCount.get(r.id) ?? 0)) {
+        out.push({ url: `${base}${dataFacetPath(racePath(r, lang), lang, df)}`, lastModified: fr?.updated_at, changeFrequency: df === "registration" || df === "results" ? "weekly" : "monthly", priority: df === "results" || df === "registration" || df === "weather" ? 0.8 : 0.6 });
       }
     }
   }
