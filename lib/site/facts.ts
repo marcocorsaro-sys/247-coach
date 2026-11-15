@@ -408,38 +408,51 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
 
 // ---------------------------------------------------------------- negozi bici da Google Maps (Apify)
 // OSM blocca i server di hosting: i negozi arrivano da un run di compass/crawler-google-places
-// ("bike shop <località>"), letto qui e assegnato alle gare entro 25 km.
-export const SHOPS_DATASET = "AbWBDbgC7lkjAcm7i";
+// ("bike shop <località>") lanciato dal cron con APIFY_TOKEN, assegnato alle gare entro 25 km.
 const BIKE_CAT = /bicycle|bike|cycl|bicicl|fahrrad|vélo|velo|fiets|cykel|sykkel|pyörä|rower|mtb|triathlon/i;
 
-export async function importGoogleShops(admin: SupabaseClient, dataset = SHOPS_DATASET): Promise<number> {
+type G = { title?: string; categoryName?: string; categories?: string[]; location?: { lat: number; lng: number }; address?: string; phone?: string; website?: string; url?: string; totalScore?: number; reviewsCount?: number; permanentlyClosed?: boolean; temporarilyClosed?: boolean; openingHours?: { day: string; hours: string }[] };
+
+/** Negozi bici da Google Maps (Apify) per le gare che non li hanno ancora: un lotto di località per giro. */
+export async function importGoogleShops(admin: SupabaseClient, batch = 30): Promise<{ done: number; error?: string }> {
   const token = process.env.APIFY_TOKEN;
-  if (!token) return 0;
-  const { data: rows } = await admin.from("event_race_facts").select("race_id,lat,lon").not("lat", "is", null).is("shops_at", null);
-  if (!rows?.length) return 0;
-  const res = await fetch(`https://api.apify.com/v2/datasets/${dataset}/items?clean=true&format=json&fields=title,categoryName,categories,location,address,phone,website,url,totalScore,reviewsCount,permanentlyClosed,temporarilyClosed,openingHours&token=${encodeURIComponent(token)}`, { signal: AbortSignal.timeout(60_000) });
-  if (!res.ok) throw new Error(`apify dataset ${res.status}`);
-  type G = { title?: string; categoryName?: string; categories?: string[]; location?: { lat: number; lng: number }; address?: string; phone?: string; website?: string; url?: string; totalScore?: number; reviewsCount?: number; permanentlyClosed?: boolean; temporarilyClosed?: boolean; openingHours?: { day: string; hours: string }[] };
+  if (!token) return { done: 0, error: "APIFY_TOKEN mancante" };
+  const { data: rows } = await admin.from("event_race_facts").select("race_id,lat,lon,geo_label").not("lat", "is", null).not("geo_label", "is", null).is("shops_at", null).limit(400);
+  if (!rows?.length) return { done: 0 };
+  const byLabel = new Map<string, { race_id: string; lat: number; lon: number }[]>();
+  for (const r of rows as { race_id: string; lat: number; lon: number; geo_label: string }[]) {
+    if (!byLabel.has(r.geo_label)) byLabel.set(r.geo_label, []);
+    byLabel.get(r.geo_label)!.push(r);
+  }
+  const labels = [...byLabel.keys()].slice(0, batch);
+  const url = `https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items?token=${encodeURIComponent(token)}&timeout=170&format=json&clean=true`;
+  const res = await fetch(url, {
+    method: "POST", headers: { "content-type": "application/json" }, signal: AbortSignal.timeout(200_000),
+    body: JSON.stringify({ searchStringsArray: labels.map((l) => `bike shop ${l}`), maxCrawledPlacesPerSearch: 12, language: "en", scrapePlaceDetailPage: false, scrapeContacts: false, maxImages: 0, maxReviews: 0 }),
+  });
+  if (!res.ok) return { done: 0, error: `apify ${res.status} ${(await res.text()).slice(0, 200)}` };
   const items = ((await res.json()) as G[]).filter((g) => g.title && g.location && !g.permanentlyClosed && !g.temporarilyClosed && BIKE_CAT.test([g.categoryName, ...(g.categories ?? []), g.title].join(" ")));
   let n = 0;
-  for (const r of rows as { race_id: string; lat: number; lon: number }[]) {
-    const seen = new Set<string>();
-    const shops: BikeShop[] = [];
-    for (const g of items) {
-      const km = kmBetween(r.lat, r.lon, g.location!.lat, g.location!.lng);
-      if (km > 25 || seen.has(g.title!.toLowerCase())) continue;
-      seen.add(g.title!.toLowerCase());
-      const cats = [g.categoryName, ...(g.categories ?? [])].join(" ");
-      shops.push({
-        name: g.title!, address: g.address ?? null, website: g.website ?? null, phone: g.phone ?? null,
-        hours: g.openingHours?.length ? g.openingHours.map((h) => `${h.day.slice(0, 3)} ${h.hours}`).join("; ") : null,
-        repair: /repair|service|riparaz|werkstatt|atelier|taller/i.test(cats), rental: /rental|noleggio|verleih|location|alquiler|hire/i.test(cats),
-        km: r1(km), lat: g.location!.lat, lon: g.location!.lng, url: g.url ?? null, rating: g.totalScore ?? null, reviews: g.reviewsCount ?? null, source: "google",
-      });
+  for (const l of labels) {
+    for (const r of byLabel.get(l)!) {
+      const seen = new Set<string>();
+      const shops: BikeShop[] = [];
+      for (const g of items) {
+        const km = kmBetween(r.lat, r.lon, g.location!.lat, g.location!.lng);
+        if (km > 25 || seen.has(g.title!.toLowerCase())) continue;
+        seen.add(g.title!.toLowerCase());
+        const cats = [g.categoryName, ...(g.categories ?? [])].join(" ");
+        shops.push({
+          name: g.title!, address: g.address ?? null, website: g.website ?? null, phone: g.phone ?? null,
+          hours: g.openingHours?.length ? g.openingHours.map((h) => `${h.day.slice(0, 3)} ${h.hours}`).join("; ") : null,
+          repair: /repair|service|riparaz|werkstatt|atelier|taller/i.test(cats), rental: /rental|noleggio|verleih|location|alquiler|hire/i.test(cats),
+          km: r1(km), lat: g.location!.lat, lon: g.location!.lng, url: g.url ?? null, rating: g.totalScore ?? null, reviews: g.reviewsCount ?? null, source: "google",
+        });
+      }
+      shops.sort((a, b) => a.km - b.km);
+      await admin.from("event_race_facts").update({ bike_shops: shops.slice(0, 20), shops_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("race_id", r.race_id);
+      n++;
     }
-    shops.sort((a, b) => a.km - b.km);
-    await admin.from("event_race_facts").update({ bike_shops: shops.slice(0, 20), shops_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("race_id", r.race_id);
-    n++;
   }
-  return n;
+  return { done: n };
 }

@@ -20,7 +20,9 @@ export async function GET(req: Request) {
   if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
   const t0 = Date.now();
   const admin = createAdminClient();
-  const shopsImported = await importGoogleShops(admin as never).catch(() => -1);
+  // negozi bici: un lotto per giro, solo nei giri dei minuti 5 e 35 (il run Apify dura ~1-2 minuti)
+  const mm = new Date().getUTCMinutes();
+  const shopsImported = url.searchParams.get("shops") === "1" || mm < 10 || (mm >= 30 && mm < 40) ? await importGoogleShops(admin as never).catch((e) => ({ done: 0, error: String(e) })) : null;
   const only = url.searchParams.get("race");
   let q = admin.from("event_races").select("*").eq("status", "published");
   if (only) q = q.eq("slug", only);
