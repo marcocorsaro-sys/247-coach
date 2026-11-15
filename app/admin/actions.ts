@@ -53,3 +53,22 @@ export async function announceToAthletes(formData: FormData) {
   const n = await announceFeature(createAdminClient() as never, text);
   redirect(`/admin?ann=${n}`);
 }
+
+/** Revisione settimanale immediata per un atleta 24/7 Coach (es. dopo un errore dell'AI). */
+export async function reviewPlanNow(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+  if (!(me as { is_admin?: boolean } | null)?.is_admin) return;
+  const athleteId = String(formData.get("athlete_id") ?? "");
+  const { aiAthleteIds } = await import("@/lib/server/appScope");
+  if (!athleteId || !(await aiAthleteIds()).has(athleteId)) redirect("/admin?rev=err");
+  const { after } = await import("next/server");
+  const { weeklyReview } = await import("@/lib/ai/plan");
+  await createAdminClient().from("ai_athlete_profiles").update({ ai_generation_started_at: new Date().toISOString(), ai_last_error: null } as never).eq("athlete_id", athleteId);
+  after(async () => {
+    try { await weeklyReview(athleteId); } catch (e) { console.error("[admin review]", (e as Error).message); }
+  });
+  redirect("/admin?rev=ok");
+}

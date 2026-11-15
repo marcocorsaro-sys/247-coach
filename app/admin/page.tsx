@@ -4,7 +4,7 @@
 // entra nell'area atleta come lui (switch vista già esistente).
 // ============================================================================
 import Link from "next/link";
-import { announceToAthletes, sendCoachTelegram } from "@/app/admin/actions";
+import { announceToAthletes, reviewPlanNow, sendCoachTelegram } from "@/app/admin/actions";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,6 +12,7 @@ import { AI_COACH_ID } from "@/lib/ai/mode";
 import { toggleWatch } from "./actions";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 type P = { id: string; full_name: string | null; email: string | null; lang: string | null; created_at: string };
 type Ai = { athlete_id: string; onboarding_completed_at: string | null; plan_generated_at: string | null; ai_last_error: string | null; goal_notes: string | null; experience_level: string | null };
@@ -25,8 +26,8 @@ function ago(iso: string | null) {
 }
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "2-digit" }) : "—");
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tg?: string; ann?: string }> }) {
-  const { tg: tgParam, ann: annParam } = await searchParams;
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tg?: string; ann?: string; rev?: string }> }) {
+  const { tg: tgParam, ann: annParam, rev: revParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -142,13 +143,22 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         </div>
       ) : null}
 
+      <form action={reviewPlanNow} className="card" style={{ marginBottom: 16, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <b>🔄 Rivedi la tabella adesso</b>
+        <select className="input" name="athlete_id" defaultValue="197d3996-58a8-4fe4-bc1f-564cf4ec1ce4" style={{ maxWidth: 260 }}>
+          {P_.map((p) => <option key={p.id} value={p.id}>{p.full_name ?? p.email}</option>)}
+        </select>
+        <button className="btn btn-primary btn-sm" type="submit">Avvia revisione</button>
+        {revParam ? <span style={{ fontSize: ".82rem", color: revParam === "ok" ? "#4ade80" : "#fb7185" }}>{revParam === "ok" ? "✓ Avviata: l'atleta riceve la notifica a tabella pronta" : "Atleta non valido"}</span> : null}
+      </form>
+
       <form action={sendCoachTelegram} className="card" style={{ marginBottom: 16, display: "grid", gap: 8 }}>
         <b>✉️ Messaggio Telegram all'atleta (a nome del suo coach)</b>
         {tgParam ? <span style={{ fontSize: ".82rem", color: tgParam === "ok" ? "#4ade80" : "#fb7185" }}>{tgParam === "ok" ? "✓ Inviato" : tgParam === "nochat" ? "L'atleta non ha collegato Telegram" : "Invio non riuscito"}</span> : null}
         <select className="input" name="athlete_id" defaultValue="197d3996-58a8-4fe4-bc1f-564cf4ec1ce4">
           {P_.map((p) => <option key={p.id} value={p.id}>{p.full_name ?? p.email}</option>)}
         </select>
-        <textarea className="input" name="text" rows={6} defaultValue={"Buongiorno Luca! Ho fatto pulizia: su Intervals e sull'orologio adesso trovi solo il piano attuale, oggi c'è solo la mezza. Le attività doppie Garmin+Strava non contano più nei calcoli, quindi forma e fatica ora sono realistiche.\n\nOggi pensa solo a correre: partenza controllata, poi gestisci con la testa. Un grande in bocca al lupo per Portogruaro! 🏃💪"} />
+        <textarea className="input" name="text" rows={6} placeholder="Testo del messaggio…" />
         <div><button className="btn btn-primary btn-sm" type="submit">Invia</button></div>
       </form>
 
