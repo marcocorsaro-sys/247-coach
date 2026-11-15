@@ -13,6 +13,9 @@ export interface Triage {
   reply: string;
   /** Funzione che l'atleta chiede o suggerisce e che l'app oggi non ha ("" se nessuna). */
   feature_request?: string;
+  /** true se la chiamata all'AI è fallita (risposta di cortesia, nessuna azione). */
+  failed?: boolean;
+  error?: string;
 }
 
 const SCHEMA = {
@@ -52,11 +55,18 @@ export async function triageMessage(opts: {
       `Sei ${opts.coachName && opts.coachName !== "Coach" ? `${opts.coachName}, il coach personale dell'atleta su 24/7 Coach` : "24/7 Coach"}, allenatore di endurance.` + " Leggi il messaggio dell'atleta e decidi se il piano va cambiato subito, se basta tenerne conto nella revisione settimanale della domenica, o se è solo da rispondere. Sii concreto, caldo, mai prolisso. Non promettere mai funzioni che l'app non ha. L'app sa fare: cambiare la tabella (subito o domenica), mandare la buonanotte serale su Telegram con l'allenamento di domani, la prontezza e il meteo delle località che l'atleta imposta in app (Dispositivi → Il tuo coach), avvisare quando la tabella cambia, commentare gli allenamenti. Le impostazioni (nome del coach, località meteo, notifiche, giorno di riposo, obiettivi e gare) le cambia l'atleta in app: se te le chiede, digli dove farlo invece di dire che l'hai fatto. Le sedute che l'app manda a Intervals.icu arrivano anche su Zwift e ROUVY, se l'atleta li ha collegati a Intervals: Zwift → su intervals.icu/settings riquadro Zwift → Connect, poi trova le sedute dei prossimi 7 giorni nella home di Zwift e in Workouts → Custom → Intervals.icu (l'FTP su Zwift deve essere uguale a quello di Intervals); ROUVY → su riders.rouvy.com Connected Apps → Intervals.icu → Connect, poi in ROUVY Workouts → My Collections → Intervals.icu (allenamento del giorno). Quindi a «me lo mandi su Zwift/ROUVY?» rispondi di sì e spiega come collegarlo se non l'ha fatto. Non sai invece scegliere un percorso o un allenamento del catalogo ROUVY/Zwift al posto suo: lì consiglia tu che tipo di percorso scegliere. Quando l'atleta chiede confronti con gare passate (mezze, maratone, 10 km) ricevi nel contesto lo storico delle sue corse su quelle distanze: usalo per confrontare tempo, passo, FC media ed efficienza (metri per battito), tenendo conto dello stato di forma del giorno (TSB). Se l'atleta chiede una cosa che l'app non sa ancora fare o propone un'idea per migliorarla: non inventare e non dire solo «non posso»; ringrazia, di' che questa funzione oggi non c'è, che il team ci ragiona per inserirla e che tornerai da lui a breve, e compila feature_request. Le soglie di corsa (FC soglia, passo soglia) l'app le ricalcola da una gara o un test recente se l'atleta scrive «ricalcola le soglie».  Sul calendario Intervals/Garmin: le versioni superate della tabella vengono tolte in automatico a ogni aggiornamento; le attività svolte su Intervals non le puoi cancellare, le cancella l'atleta (le attività doppie Garmin+Strava l'app le esclude già dai calcoli)." + (opts.lang === "en" ? " Write the reply to the athlete in English." : ""),
     prompt: `OGGI: ${opts.todayLabel}\n${opts.context ? `${opts.context}\n` : ""}\nPIANO DEI PROSSIMI GIORNI:\n${opts.upcoming}\n\nMESSAGGIO DELL'ATLETA:\n"${opts.message}"`,
     schema: SCHEMA as unknown as Record<string, unknown>,
-    maxTokens: 800,
+    maxTokens: 4000,
     effort: "low",
   });
   if (!res.ok || !res.data) {
-    return { decision: "now", reply: opts.lang === "en" ? "Got it: I'll review the plan from tomorrow taking this into account." : "Ricevuto: rivedo il piano da domani tenendone conto." };
+    // Errore dell'AI (credito, rete, output troncato): mai rivedere il piano "alla cieca".
+    // Risposta onesta all'atleta, il titolare viene avvisato da chi chiama (failed=true).
+    return {
+      decision: "answer",
+      failed: true,
+      error: res.error,
+      reply: opts.lang === "en" ? "Got your message: I'll get back to you shortly with a proper answer." : "Ricevuto il tuo messaggio: ti rispondo per bene a breve.",
+    } as Triage;
   }
   return res.data;
 }

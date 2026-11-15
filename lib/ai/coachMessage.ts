@@ -74,9 +74,15 @@ export async function handleCoachMessage(
     if (rows.length) historyTxt = `STORICO CORSE SU DISTANZE DA GARA, ultimi 3 anni (dati reali da Intervals; i nomi sono quelli dell'orologio e possono essere generici o sbagliati: riconosci le gare da data, ora e distanza, e se non sei sicuro di quale sia quella citata dall'atleta dillo e chiedi conferma; le distanze GPS sono spesso un po' più lunghe di quella ufficiale): ${rows.join("; ")}`;
   }
   const t = await triageMessage({ message, todayLabel, upcoming, lang, coachName: coach, context: [readinessText(ready), historyTxt, recentTxt ? `ALLENAMENTI SVOLTI NELLE ULTIME 48 ORE (confrontali col piano: se ha fatto molto più o molto meno del previsto, soprattutto vicino a una gara, dillo con franchezza e spiega le conseguenze): ${recentTxt}` : ""].filter(Boolean).join("\n") });
+  // AI non disponibile (es. credito API esaurito): avvisa subito il titolare.
+  if (t.failed) {
+    const owner = process.env.TELEGRAM_CHAT_ID;
+    const { data: pr } = await admin.from("profiles").select("full_name").eq("id", athleteId).maybeSingle();
+    if (owner) await tgSend(owner, `⚠️ ${coach} non è riuscito a rispondere a ${(pr as { full_name?: string | null } | null)?.full_name ?? "un atleta"}: ${String(t.error ?? "errore AI").slice(0, 300)}\n\nMessaggio: ${message.slice(0, 500)}`).catch(() => false);
+  }
   // Secondo controllo prima dell'invio (atleti con verify_replies).
   let verifyNote: string | null = null;
-  if (verifyOn) {
+  if (verifyOn && !t.failed) {
     const { data: fit } = await admin.from("athlete_fitness").select("lthr, max_hr, threshold_pace_run_s_per_km, ftp_w, css_s_per_100m, notes").eq("athlete_id", athleteId).maybeSingle();
     const v = await verifyCoachReply({
       coachName: coach,
