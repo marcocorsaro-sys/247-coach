@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { getRaceBundleBySeg, racePath, raceSeg, raceTitle, type RaceBundle, type RaceArticle } from "@/lib/site/races";
+import { getRaceBundleBySeg, racePath, raceSeg, raceTitle, raceTitleSeo, type RaceBundle, type RaceArticle } from "@/lib/site/races";
 import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
@@ -35,7 +35,7 @@ function facetData(b: RaceBundle, lang: Lang, f: Facet) {
   const num = (n: number | null | undefined) => (n == null ? "" : Number(n).toLocaleString(loc, { maximumFractionDigits: 1 }));
   const km = f === "swim" ? num(r.swim_km) : f === "bike" ? num(r.bike_km) : f === "run" ? num(r.run_km) : "";
   const dplus = r.bike_dplus_m != null ? r.bike_dplus_m.toLocaleString(loc) : "";
-  const race = raceTitle(r);
+  const race = raceTitleSeo(r);
   const txt = FACET_I18N[lang][f];
   const title = fillFacet(f === "bike" && !dplus ? txt.title.replace(/,? ?\{dplus\}[^,]*,/, ",") : txt.title, { race, km, dplus });
   const desc = fillFacet(txt.desc, { race, km, dplus });

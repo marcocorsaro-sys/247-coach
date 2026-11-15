@@ -5,7 +5,7 @@ import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { fmtDate, getRaceBundleBySeg, hasRichContent, listRaces, racePath, raceSeg, raceTitle, weeksUntil } from "@/lib/site/races";
+import { fmtDate, getRaceBundleBySeg, hasRichContent, listRaces, racePath, raceSeg, raceTitle, raceTitleSeo, weeksUntil } from "@/lib/site/races";
 import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { isAlpha, SiteFooter, SiteNav } from "@/components/site/SiteShell";
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const y = r.race_date?.slice(0, 4) ?? "";
   const t = tr(await getDict(lang));
   return {
-    title: `${raceTitle(r)} ${y} · ${t("race.courseKicker")}, ${t("rev.kicker").toLowerCase()}, ${t("tips.kicker").toLowerCase()} · 24/7 Coach`,
+    title: `${raceTitleSeo(r)} ${y} · ${t("race.courseKicker")}, ${t("rev.kicker").toLowerCase()}, ${t("tips.kicker").toLowerCase()} · 24/7 Coach`,
     description: r.intro ?? r.tagline ?? undefined,
     ...seoFor(lang, await availableLangs("event_race_translations", r.id), (l) => racePath(r, l)),
     openGraph: { title: `${raceTitle(r)} ${y}`, description: r.tagline ?? undefined, url: racePath(r, lang), type: "article", locale: OG_LOCALE[lang] },

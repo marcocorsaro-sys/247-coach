@@ -262,6 +262,12 @@ export async function resolveRaceSlug(seg: string): Promise<string | null> {
   const { data } = await createPublicClient().from("event_races").select("slug").like("slug", `${s}-____`).eq("status", "published").order("race_date", { ascending: false }).limit(1);
   return ((data ?? []) as { slug: string }[])[0]?.slug ?? null;
 }
+/** Per titoli SEO: aggiunge la città se il nome ufficiale non la contiene ("Ironman Italy Emilia-Romagna (Cervia)"). */
+export function raceTitleSeo(r: Pick<Race, "series" | "distance" | "name" | "city">): string {
+  const base = raceTitle(r);
+  const city = (r.city ?? "").trim();
+  return city && !base.toLowerCase().includes(city.toLowerCase()) ? `${base} (${city})` : base;
+}
 /** Nome con serie, per titoli e H1: "Ironman Nizza", "Ironman 70.3 Alghero". */
 export function raceTitle(r: Pick<Race, "series" | "distance" | "name">): string {
   const s = SERIES_LABEL[r.series] ?? "";
