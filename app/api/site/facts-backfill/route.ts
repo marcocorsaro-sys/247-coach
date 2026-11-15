@@ -29,10 +29,18 @@ export async function GET(req: Request) {
     admin.from("event_race_sources").select("race_id,url").eq("kind", "official"),
   ]);
   const F = new Map(((facts ?? []) as { race_id: string }[]).map((f) => [f.race_id, f as Record<string, unknown> & { race_id: string }]));
-  const off = new Map<string, string>();
+  // Pagina ufficiale ironman.com della gara, della distanza giusta (le 70.3 sono /races/im703-...).
+  const cand = new Map<string, string[]>();
   for (const s of (srcs ?? []) as { race_id: string; url: string }[]) {
-    const m = /^https?:\/\/(?:www\.)?ironman\.com\/races\/[a-z0-9-]+\/?$/i.exec(s.url);
-    if (m && (!off.has(s.race_id) || s.url.length < off.get(s.race_id)!.length)) off.set(s.race_id, s.url.replace(/\/$/, ""));
+    const m = /^https?:\/\/(?:www\.)?ironman\.com\/races\/([a-z0-9-]+)\/?$/i.exec(s.url);
+    if (!m) continue;
+    if (!cand.has(s.race_id)) cand.set(s.race_id, []);
+    cand.get(s.race_id)!.push(`https://www.ironman.com/races/${m[1].toLowerCase()}`);
+  }
+  const off = new Map<string, string>();
+  for (const r of (races ?? []) as Race[]) {
+    const ok = (cand.get(r.id) ?? []).filter((u) => (/\/im703-|70-?3/.test(u)) === (r.distance === "half")).sort((a, b) => a.length - b.length);
+    if (ok[0]) off.set(r.id, ok[0]);
   }
   // prima le gare più vicine nel tempo (le più cercate), poi le altre
   const R = ((races ?? []) as Race[]).sort((a, b) => (a.race_date ?? "9").localeCompare(b.race_date ?? "9"));

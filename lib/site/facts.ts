@@ -153,7 +153,14 @@ function kmBetween(a: number, b: number, c: number, d: number) {
 }
 export async function bikeShopsNear(lat: number, lon: number, radiusM = 25000): Promise<BikeShop[]> {
   const q = `[out:json][timeout:25];(nwr["shop"="bicycle"](around:${radiusM},${lat},${lon});nwr["amenity"="bicycle_repair_station"](around:${Math.min(radiusM, 8000)},${lat},${lon}););out center tags 80;`;
-  const d = await j("https://overpass-api.de/api/interpreter", { method: "POST", body: new URLSearchParams({ data: q }), headers: { "content-type": "application/x-www-form-urlencoded" } });
+  // Più istanze Overpass: quella principale rifiuta spesso le richieste dai datacenter.
+  let d: { elements?: unknown[] } | null = null;
+  let last: unknown = null;
+  for (const ep of ["https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"]) {
+    try { d = await j(ep, { method: "POST", body: new URLSearchParams({ data: q }), headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" } }); break; }
+    catch (e) { last = e; }
+  }
+  if (!d) throw new Error(`overpass: ${(last as Error)?.message ?? "?"} ${((last as Error & { cause?: { code?: string } })?.cause?.code) ?? ""}`.trim());
   const els = (d?.elements ?? []) as { lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }[];
   const shops: BikeShop[] = [];
   for (const e of els) {
