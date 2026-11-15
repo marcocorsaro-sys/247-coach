@@ -67,5 +67,6 @@ export async function GET(req: Request) {
     }
     if (!progressed) break;
   }
+  await admin.from("site_job_log").insert({ job: "facts-backfill", result: { shopsImported, steps: done.length, sample: done.slice(0, 15), ms: Date.now() - t0 } } as never);
   return NextResponse.json({ shopsImported, steps: done.length, done: done.slice(0, 60), ms: Date.now() - t0 });
 }
