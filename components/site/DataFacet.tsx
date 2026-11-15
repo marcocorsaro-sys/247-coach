@@ -6,6 +6,7 @@ import type { Lang } from "@/lib/i18n/config";
 import { LOCALE } from "@/lib/i18n/config";
 import type { DataFacet as DF } from "@/lib/site/facets";
 import { DATA_UI, fillUi } from "@/lib/site/dataUi";
+import { isoCurrency } from "@/lib/site/jsonld";
 import type { BikeShop, Climate, Finisher, Official, Results, Water } from "@/lib/site/facts";
 import type { RaceBundle, RaceMedia } from "@/lib/site/races";
 
@@ -31,7 +32,7 @@ export function winnerPosts(media: RaceMedia[], winners: Finisher[]) {
 }
 
 const day = (iso: string | null | undefined, lang: Lang) => (iso ? new Date(iso).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "long", year: "numeric" }) : "");
-const money = (p: number, cur: string | null, lang: Lang) => { try { return new Intl.NumberFormat(LOCALE[lang], { style: "currency", currency: (cur ?? "EUR").toUpperCase().slice(0, 3), maximumFractionDigits: 0 }).format(p); } catch { return `${p} ${cur ?? ""}`; } };
+const money = (p: number, cur: string | null, lang: Lang) => { const c = isoCurrency(cur); try { return c ? new Intl.NumberFormat(LOCALE[lang], { style: "currency", currency: c, maximumFractionDigits: 0 }).format(p) : `${Math.round(p)} ${cur ?? ""}`.trim(); } catch { return `${Math.round(p)} ${cur ?? ""}`.trim(); } };
 const n1 = (x: number | null | undefined, lang: Lang) => (x == null || Number.isNaN(x) ? "–" : x.toLocaleString(LOCALE[lang], { maximumFractionDigits: 1 }));
 
 function Kpis({ items }: { items: { v: string; l: string }[] }) {

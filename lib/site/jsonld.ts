@@ -144,14 +144,22 @@ export function faqLd(faq: { q: string; a: string }[] | null | undefined) {
 }
 
 // ---------------------------------------------------------------- pagine dati
+const CUR: Record<string, string> = { "€": "EUR", "$": "USD", "us$": "USD", "a$": "AUD", "au$": "AUD", "nz$": "NZD", "c$": "CAD", "ca$": "CAD", "£": "GBP", r: "ZAR", rm: "MYR", "r$": "BRL", "¥": "JPY", "rmb": "CNY", "₩": "KRW", "kr": "SEK", "chf": "CHF", "₹": "INR", "฿": "THB", "s$": "SGD", "nt$": "TWD", "₱": "PHP", "rp": "IDR", "₺": "TRY" };
+/** Valuta ISO 4217 da quella letta sul sito (simboli e sigle locali). */
+export function isoCurrency(c: string | null | undefined): string | null {
+  if (!c) return null;
+  const k = c.trim().toLowerCase();
+  if (CUR[k]) return CUR[k];
+  return /^[a-z]{3}$/.test(k) ? k.toUpperCase() : null;
+}
 type Tier = { name: string; price: number | null; currency: string | null; notes: string | null };
 /** Offer per SportsEvent.offers dai prezzi letti sulla pagina ufficiale. */
 export function offersLd(o: { price_tiers?: Tier[]; register_url?: string | null; status?: string | null } | null | undefined, fallbackUrl: string, checkedAt?: string | null) {
   if (!o) return [];
   const st = (o.status ?? "").toLowerCase();
   const availability = /sold|esaur|full|closed|chius/.test(st) ? "https://schema.org/SoldOut" : /wait/.test(st) ? "https://schema.org/LimitedAvailability" : /open|apert/.test(st) ? "https://schema.org/InStock" : undefined;
-  return (o.price_tiers ?? []).filter((t) => t.price != null && t.currency).map((t) => ({
-    "@type": "Offer", name: t.name, price: t.price, priceCurrency: t.currency!.toUpperCase().slice(0, 3),
+  return (o.price_tiers ?? []).filter((t) => t.price != null && isoCurrency(t.currency)).map((t) => ({
+    "@type": "Offer", name: t.name, price: t.price, priceCurrency: isoCurrency(t.currency)!,
     url: o.register_url ?? fallbackUrl, availability, validFrom: undefined, priceValidUntil: undefined,
     category: "Entry", description: t.notes ?? undefined, ...(checkedAt ? { dateModified: checkedAt } : {}),
   }));
