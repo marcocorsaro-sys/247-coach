@@ -52,8 +52,8 @@ export async function GET(req: Request) {
     let progressed = false;
     for (const r of R) {
       if (Date.now() - t0 > BUDGET_MS) break;
-      // i negozi sono lenti (Overpass/Nominatim): al massimo 6 per giro, il resto va avanti
-      const step = await stepFacts(admin as never, r, (F.get(r.id) ?? null) as never, off.get(r.id) ?? null, { skipShops: shopRuns >= 6 }).catch((e) => `err:${(e as Error).message}`);
+      // negozi: OSM blocca i server di hosting, li carico a parte (Apify); qui solo con ?shops=1
+      const step = await stepFacts(admin as never, r, (F.get(r.id) ?? null) as never, off.get(r.id) ?? null, { skipShops: url.searchParams.get("shops") !== "1" || shopRuns >= 3 }).catch((e) => `err:${(e as Error).message}`);
       if (step?.startsWith("shops")) shopRuns++;
       if (step) {
         progressed = true;
