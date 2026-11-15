@@ -388,8 +388,13 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
     if (!opts.skipShops && old(row.shops_at, 90)) {
       try { return save({ bike_shops: await bikeShopsNear(lat, lon), shops_at: new Date().toISOString() }, "shops"); } catch (e) { return fail("shops", e); }
     }
-    if (officialUrl && old(row.official_at, 30)) {
-      try { return save({ official: await officialInfo(officialUrl), official_url: officialUrl, official_at: new Date().toISOString() }, "official"); } catch (e) { return fail("official", e); }
+    if (old(row.official_at, 30)) {
+      // senza fonte ufficiale salvata: provo gli URL ironman.com plausibili e tengo quello che risponde
+      const ou = officialUrl ?? (row.official_url as string | null) ?? (await discoverOfficial(r));
+      if (ou) {
+        try { return save({ official: await officialInfo(ou), official_url: ou, official_at: new Date().toISOString() }, "official"); } catch (e) { return fail("official", e); }
+      }
+      if (!officialUrl) await admin.from("event_race_facts").upsert({ race_id: r.id, official_at: new Date(Date.now() - 23 * DAY).toISOString() } as never, { onConflict: "race_id" }); // riprova tra una settimana
     }
     if (old(row.results_at, 30)) {
       try {
@@ -455,4 +460,26 @@ export async function importGoogleShops(admin: SupabaseClient, batch = 30): Prom
     }
   }
   return { done: n };
+}
+
+// ---------------------------------------------------------------- pagina ufficiale ironman.com da indovinare
+const sl = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const IT_EN: Record<string, string> = { nizza: "nice", francoforte: "frankfurt", amburgo: "hamburg", copenaghen: "copenhagen" };
+export async function discoverOfficial(r: Pick<Race, "slug" | "name" | "city" | "official_name" | "distance">): Promise<string | null> {
+  const pre = r.distance === "half" ? "im703-" : "im-";
+  const base = r.slug.replace(/-?703/g, "").replace(/-20\d\d$/, "");
+  const names = [base, IT_EN[base] ?? "", sl(r.name.replace(/70\.3/g, "")), sl(r.official_name?.replace(/ironman|70\.3/gi, "") ?? ""), sl(r.city ?? ""), sl(IT_EN[sl(r.city ?? "")] ?? "")].filter((x) => x.length > 2);
+  const tried = new Set<string>();
+  for (const n of names) {
+    const u = `https://www.ironman.com/races/${pre}${n}`;
+    if (tried.has(u)) continue;
+    tried.add(u);
+    const res = await fetch(u, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15_000) }).catch(() => null);
+    if (!res?.ok) continue;
+    const final = res.url.replace(/\/$/, "");
+    if (!/ironman\.com\/races\/im/.test(final)) continue; // redirect alla home o all'elenco gare
+    if ((/\/im703-/.test(final)) !== (r.distance === "half")) continue;
+    return final;
+  }
+  return null;
 }
