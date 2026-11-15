@@ -157,14 +157,14 @@ export function DataFacetBody({ f, facts, b, lang }: { f: DF; facts: FactsRow; b
           {facts.bike_shops.map((s) => (
             <div className="ld-card" key={s.name + s.lat}>
               <h3>{s.name}</h3>
-              <p className="mono">{n1(s.km, lang)} km{s.repair ? ` · ${u.repair}` : ""}{s.rental ? ` · ${u.rental}` : ""}</p>
+              <p className="mono">{n1(s.km, lang)} km{s.rating ? ` · ★ ${n1(s.rating, lang)}${s.reviews ? ` (${s.reviews})` : ""}` : ""}{s.repair ? ` · ${u.repair}` : ""}{s.rental ? ` · ${u.rental}` : ""}</p>
               {s.address ? <p>{s.address}</p> : null}
               {s.hours ? <p><small>{u.hours}: {s.hours}</small></p> : null}
-              <p>{s.phone ? <a href={`tel:${s.phone.replace(/\s/g, "")}`}>{s.phone}</a> : null}{s.phone && s.website ? " · " : ""}{s.website ? <a href={s.website} target="_blank" rel="noopener nofollow">{u.site} ↗</a> : null}{" · "}<a href={`https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}`} target="_blank" rel="noopener">{u.map} ↗</a></p>
+              <p>{s.phone ? <a href={`tel:${s.phone.replace(/\s/g, "")}`}>{s.phone}</a> : null}{s.phone && s.website ? " · " : ""}{s.website ? <a href={s.website} target="_blank" rel="noopener nofollow">{u.site} ↗</a> : null}{" · "}<a href={s.url ?? `https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=17/${s.lat}/${s.lon}`} target="_blank" rel="noopener nofollow">{u.map} ↗</a></p>
             </div>
           ))}
         </div>
-        <SrcLine label={u.source} href="https://www.openstreetmap.org/copyright" text="© OpenStreetMap contributors (ODbL)" />
+        {facts.bike_shops.some((x) => x.source === "google") ? <SrcLine label={u.source} href="https://www.google.com/maps" text="Google Maps" /> : <SrcLine label={u.source} href="https://www.openstreetmap.org/copyright" text="© OpenStreetMap contributors (ODbL)" />}
       </Sec>
     );
   }

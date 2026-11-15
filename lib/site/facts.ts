@@ -28,7 +28,7 @@ export interface Climate {
   source: string;
 }
 export interface Water { avg_c: number; min_c: number; max_c: number; years: number[]; source: string }
-export interface BikeShop { name: string; address: string | null; website: string | null; phone: string | null; hours: string | null; repair: boolean; rental: boolean; km: number; lat: number; lon: number }
+export interface BikeShop { name: string; address: string | null; website: string | null; phone: string | null; hours: string | null; repair: boolean; rental: boolean; km: number; lat: number; lon: number; url?: string | null; rating?: number | null; reviews?: number | null; source?: "osm" | "google" }
 export interface Official {
   status: string | null; opens_at: string | null; register_url: string | null;
   price_tiers: { name: string; price: number | null; currency: string | null; notes: string | null }[];
