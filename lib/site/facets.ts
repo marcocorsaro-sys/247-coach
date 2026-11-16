@@ -303,7 +303,7 @@ export function dataFacetsFor(facts: Record<string, unknown> | null, reviewsCoun
   if (f.climate) out.push("weather");
   if ((f.bike_shops?.length ?? 0) >= 2) out.push("bikeshops");
   if (reviewsCount > 0) out.push("reviews");
-  if (o?.slots?.total || (f.results as { slots_note?: string | null } | null)?.slots_note) out.push("qualification");
+  if (o?.slots?.total || (o?.slots as { notes?: string | null } | null)?.notes || (f.results as { slots_note?: string | null } | null)?.slots_note) out.push("qualification");
   if (o?.cutoffs?.length) out.push("cutoffs");
   return out;
 }
