@@ -294,11 +294,14 @@ async function coachcoxSeries() {
   return seriesCache;
 }
 
+// gare che nelle statistiche hanno il nome del paese
+const CC_ALIAS: Record<string, string> = { klagenfurt: "Austria", nizza: "France", kalmar: "Sweden", utah: "St. George", "nelson-mandela-bay": "South Africa", cascais: "Portugal - Cascais" };
+
 /** Ultima edizione con risultati su CoachCox della gara (match per nome, città o slug). */
 export async function findCoachcoxRace(r: Pick<Race, "name" | "city" | "distance" | "slug">): Promise<{ raceId: number; year: number } | null> {
   const all = (await coachcoxSeries()).filter((s) => s.half === (r.distance === "half"));
   const slugBase = r.slug.replace(/-?703/g, "").replace(/-20\d\d$/, "");
-  const keys = [norm(r.name), norm(r.city ?? ""), norm(slugBase)].filter((k) => k.length > 2);
+  const keys = [norm(r.name), norm(r.city ?? ""), norm(slugBase), norm(CC_ALIAS[slugBase] ?? "")].filter((k) => k.length > 2);
   const hit = all.find((s) => keys.includes(norm(s.name)))
     ?? all.find((s) => keys.some((k) => k.length > 4 && (norm(s.name).includes(k) || k.includes(norm(s.name)))));
   return hit ? { raceId: hit.id, year: hit.year } : null;
