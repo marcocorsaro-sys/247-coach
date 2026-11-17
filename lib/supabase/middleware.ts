@@ -62,6 +62,8 @@ export async function updateSession(request: NextRequest) {
     // Chiave IndexNow (Bing, Yandex, Seznam): file in /public
     /^\/[0-9a-f]{32}\.txt$/.test(path) ||
     path === "/llms.txt" ||
+    // Immagini dei post Instagram (Windsor le scarica da un URL pubblico)
+    path.startsWith("/ig/") ||
     // Icona e manifest: iOS e i browser li scaricano senza cookie (appena
     // si salva il link, prima del login). Se rimandassero al login, l'icona
     // non comparirebbe mai.
