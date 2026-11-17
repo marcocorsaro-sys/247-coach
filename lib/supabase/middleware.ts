@@ -59,6 +59,9 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/api/mcp/") ||
     // Verifica proprietà Google Search Console (file in /public)
     /^\/google[0-9a-f]+\.html$/.test(path) ||
+    // Chiave IndexNow (Bing, Yandex, Seznam): file in /public
+    /^\/[0-9a-f]{32}\.txt$/.test(path) ||
+    path === "/llms.txt" ||
     // Icona e manifest: iOS e i browser li scaricano senza cookie (appena
     // si salva il link, prima del login). Se rimandassero al login, l'icona
     // non comparirebbe mai.
