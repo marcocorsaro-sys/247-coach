@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { trackAICrawlerRequest } from "@datafast/ai-crawl";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // Separazione dei due prodotti che condividono il codice: le rotte di 24/7 Coach
@@ -11,9 +12,17 @@ function is247(): boolean {
   return process.env.APP_MODE === "ai_coach" || process.env.NEXT_PUBLIC_APP_MODE === "ai_coach";
 }
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   if (!is247() && ONLY_247.test(request.nextUrl.pathname)) {
     return new NextResponse("Not found", { status: 404 });
+  }
+  // DataFast: traccia lato server le visite dei crawler AI (ChatGPT, Claude, Perplexity…)
+  // su 247coachai.com. Non traccia le persone né rallenta la risposta (waitUntil); un
+  // errore del tracciamento non deve mai fermare una pagina.
+  try {
+    trackAICrawlerRequest(request, event, { websiteId: "dfid_Eu8S4LdzoHuFWuGIwxsru" });
+  } catch {
+    /* il tracciamento è accessorio */
   }
   return await updateSession(request);
 }
