@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import ViewAsGlobal from "@/components/ViewAsGlobal";
 import { APP_TITLE, APP_DESCRIPTION, IS_AI_APP } from "@/lib/branding";
@@ -51,6 +52,8 @@ export default function RootLayout({
       <body className={IS_AI_APP ? "theme-247" : "theme-irene"}>
         {children}
         <ViewAsGlobal />
+        {/* Vercel Web Analytics: visite e pagine viste nel pannello del progetto. */}
+        {IS_AI_APP ? <Analytics /> : null}
         {IS_AI_APP ? (
           // DataFast analytics: solo 247coachai.com (non la tabella di Irene).
           <Script
