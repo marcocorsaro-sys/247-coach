@@ -605,7 +605,7 @@ export async function uploadReferencePlan(formData: FormData) {
   const back = (str(formData.get("back")) ?? "/atleta/dispositivi").replace(/#.*$/, "");
   const admin = createAdminClient();
   if (formData.get("remove") === "1") {
-    await admin.from("ai_athlete_profiles").update({ reference_plan: null } as never).eq("athlete_id", athleteId!);
+    await admin.from("ai_athlete_profiles").update({ reference_plan: null, reference_plan_raw: null, reference_plan_source: null } as never).eq("athlete_id", athleteId!);
     revalidatePath(back);
     redirect(`${back}?ref=removed#piano-riferimento`);
   }
@@ -622,13 +622,25 @@ export async function uploadReferencePlan(formData: FormData) {
     }
   }
   if (raw.trim().length < 40) redirect(`${back}?ref=err&msg=${encodeURIComponent("Il file o il testo è vuoto.")}#piano-riferimento`);
+  // Stesso file già caricato prima che conservassimo il testo completo: lo salviamo
+  // perché il coach possa consultarlo, senza rifare la sintesi né rigenerare il piano.
+  {
+    const { data: prev } = await admin.from("ai_athlete_profiles").select("reference_plan, reference_plan_raw").eq("athlete_id", athleteId!).maybeSingle();
+    const p = (prev ?? {}) as { reference_plan?: string | null; reference_plan_raw?: string | null };
+    const fname = source.match(/^file "(.+)"/)?.[1]?.replace(/\.[^.]+$/, "").toLowerCase();
+    if (p.reference_plan && !p.reference_plan_raw && fname && p.reference_plan.toLowerCase().includes(fname)) {
+      await admin.from("ai_athlete_profiles").update({ reference_plan_raw: raw, reference_plan_source: source } as never).eq("athlete_id", athleteId!);
+      revalidatePath(back);
+      redirect(`${back}?ref=ok#piano-riferimento`);
+    }
+  }
   let summary = "";
   try {
     summary = await summarizeReferencePlan(raw, { source });
   } catch (e) {
     redirect(`${back}?ref=err&msg=${encodeURIComponent((e as Error).message)}#piano-riferimento`);
   }
-  await admin.from("ai_athlete_profiles").update({ reference_plan: summary, ai_generation_started_at: new Date().toISOString(), ai_last_error: null } as never).eq("athlete_id", athleteId!);
+  await admin.from("ai_athlete_profiles").update({ reference_plan: summary, reference_plan_raw: raw, reference_plan_source: source, ai_generation_started_at: new Date().toISOString(), ai_last_error: null } as never).eq("athlete_id", athleteId!);
   const id = athleteId!;
   after(async () => {
     try {

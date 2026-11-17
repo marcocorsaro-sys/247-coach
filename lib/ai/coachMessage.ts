@@ -73,7 +73,19 @@ export async function handleCoachMessage(
       });
     if (rows.length) historyTxt = `STORICO CORSE SU DISTANZE DA GARA, ultimi 3 anni (dati reali da Intervals; i nomi sono quelli dell'orologio e possono essere generici o sbagliati: riconosci le gare da data, ora e distanza, e se non sei sicuro di quale sia quella citata dall'atleta dillo e chiedi conferma; le distanze GPS sono spesso un po' più lunghe di quella ufficiale): ${rows.join("; ")}`;
   }
-  const t = await triageMessage({ message, todayLabel, upcoming, lang, coachName: coach, context: [readinessText(ready), historyTxt, recentTxt ? `ALLENAMENTI SVOLTI NELLE ULTIME 48 ORE (confrontali col piano: se ha fatto molto più o molto meno del previsto, soprattutto vicino a una gara, dillo con franchezza e spiega le conseguenze): ${recentTxt}` : ""].filter(Boolean).join("\n") });
+  // Documenti caricati dall'atleta (piano di riferimento, tabelle e protocolli di ex allenatori):
+  // se il messaggio li tocca, il coach li legge davvero (testo originale, non solo la sintesi).
+  let refTxt = "";
+  if (/(test|protocoll|tabell|allenator|caricat|file|document|excel|xlsx|foglio|piano di riferimento|riferimento|bertucelli|vedana|ex coach|vecchi[oe]? (piano|allenament))/i.test(message)) {
+    const { data: rp } = await admin.from("ai_athlete_profiles").select("reference_plan, reference_plan_raw, reference_plan_source").eq("athlete_id", athleteId).maybeSingle();
+    const r = (rp ?? {}) as { reference_plan?: string | null; reference_plan_raw?: string | null; reference_plan_source?: string | null };
+    if (r.reference_plan_raw?.trim()) {
+      refTxt = `DOCUMENTO CARICATO DALL'ATLETA (${r.reference_plan_source ?? "piano di riferimento"}), TESTO ORIGINALE: cercaci dentro quello che chiede (protocolli di test, sedute, fasi) e citalo con precisione, adattandolo alle sue soglie attuali; se non c'è, dillo chiaramente.\n${r.reference_plan_raw.slice(0, 40_000)}`;
+    } else if (r.reference_plan?.trim()) {
+      refTxt = `DOCUMENTO CARICATO DALL'ATLETA: di questo file hai solo la SINTESI qui sotto (il testo completo non è stato conservato). Cerca lì quello che chiede; se il dettaglio (es. il protocollo esatto di un test) non c'è, NON inventarlo e NON dire che la funzione non esiste: chiedigli di ricaricare il file una volta dalla pagina Dispositivi > Piano di riferimento, così da quel momento lo leggi per intero.\n${r.reference_plan}`;
+    }
+  }
+  const t = await triageMessage({ message, todayLabel, upcoming, lang, coachName: coach, context: [readinessText(ready), refTxt, historyTxt, recentTxt ? `ALLENAMENTI SVOLTI NELLE ULTIME 48 ORE (confrontali col piano: se ha fatto molto più o molto meno del previsto, soprattutto vicino a una gara, dillo con franchezza e spiega le conseguenze): ${recentTxt}` : ""].filter(Boolean).join("\n") });
   // AI non disponibile (es. credito API esaurito): avvisa subito il titolare.
   if (t.failed) {
     const owner = process.env.TELEGRAM_CHAT_ID;
