@@ -6,6 +6,7 @@ import type { T } from "@/lib/i18n";
 import { magPath, ml } from "@/lib/site/magazine-i18n";
 import LangSwitch from "./LangSwitch";
 import AppLink from "./AppLink";
+import GeoLangHint from "./GeoLangHint";
 
 export const ALPHA_UNTIL = "2026-12-31";
 export function isAlpha(): boolean {
@@ -14,7 +15,10 @@ export function isAlpha(): boolean {
 
 export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; active?: "gare" | "advisor" | "calc" | "magazine"; altPaths?: Partial<Record<Lang, string>> }) {
   const alpha = isAlpha();
+  const hrefs = Object.fromEntries(LANGS.map((l) => [l, altPaths?.[l] ?? sitePath(l)]));
   return (
+    <>
+    <GeoLangHint lang={lang} hrefs={hrefs} />
     <header className="ld-top">
       <div className="ld-wrap">
         <Link className="brand" href={sitePath(lang)}>
@@ -36,6 +40,7 @@ export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; activ
         </p>
       </div>
     </header>
+    </>
   );
 }
 

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isAiCoachMode } from "@/lib/ai/mode";
-import { isLang, pickLang, sitePath } from "@/lib/i18n/config";
+import { countryLang, isLang, pickLang, sitePath } from "@/lib/i18n/config";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -11,8 +11,11 @@ export default async function Home() {
   if (!user) {
     // 24/7 Coach: sito pubblico nella lingua del visitatore. App di Irene: login.
     if (isAiCoachMode()) {
+      // Scelta salvata dal selettore > paese da cui si collega (IP) > lingua del browser.
       const c = (await cookies()).get("site_lang")?.value;
-      const lang = isLang(c) ? c : pickLang((await headers()).get("accept-language"));
+      const h = await headers();
+      const accept = h.get("accept-language");
+      const lang = isLang(c) ? c : (countryLang(h.get("x-vercel-ip-country"), accept) ?? pickLang(accept));
       redirect(sitePath(lang));
     }
     redirect("/login");

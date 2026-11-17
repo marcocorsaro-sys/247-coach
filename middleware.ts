@@ -1,6 +1,7 @@
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { trackAICrawlerRequest } from "@datafast/ai-crawl";
 import { updateSession } from "@/lib/supabase/middleware";
+import { countryLang } from "@/lib/i18n/config";
 
 // Separazione dei due prodotti che condividono il codice: le rotte di 24/7 Coach
 // (cron AI, bot Telegram, MCP, calendario, area coach /pro, inviti) esistono SOLO
@@ -24,7 +25,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   } catch {
     /* il tracciamento è accessorio */
   }
-  return await updateSession(request);
+  const res = await updateSession(request);
+  // Lingua del paese del visitatore (dall'IP), per il suggerimento "questa pagina
+  // esiste nella tua lingua" sulle pagine del sito: le pagine restano statiche e
+  // indicizzabili, nessun redirect sulle URL con lingua.
+  if (is247() && !request.cookies.get("geo_lang")) {
+    const gl = countryLang(request.headers.get("x-vercel-ip-country"), request.headers.get("accept-language"));
+    if (gl) res.cookies.set("geo_lang", gl, { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
+  }
+  return res;
 }
 
 export const config = {

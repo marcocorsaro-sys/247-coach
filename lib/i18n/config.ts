@@ -42,5 +42,25 @@ export function pickLang(accept: string | null | undefined): Lang {
   }
   return DEFAULT_LANG;
 }
+/** Lingua del sito per paese (header x-vercel-ip-country). Paesi con più lingue
+ *  (Svizzera, Belgio, Canada…): vince la lingua del browser se è una delle loro. */
+const COUNTRY_LANGS: Record<string, Lang[]> = {
+  IT: ["it"], SM: ["it"], VA: ["it"],
+  DE: ["de"], AT: ["de"], LI: ["de"], CH: ["de", "fr", "it"], LU: ["fr", "de"], BE: ["nl", "fr", "de"],
+  FR: ["fr"], MC: ["fr"],
+  ES: ["es"], AD: ["es"], MX: ["es"], AR: ["es"], CL: ["es"], CO: ["es"], PE: ["es"], UY: ["es"], PY: ["es"], BO: ["es"], EC: ["es"], VE: ["es"], CR: ["es"], PA: ["es"], GT: ["es"], HN: ["es"], SV: ["es"], NI: ["es"], DO: ["es"], CU: ["es"], PR: ["es", "en"],
+  PT: ["pt"], BR: ["pt"], AO: ["pt"], MZ: ["pt"],
+  NL: ["nl"], DK: ["da"], SE: ["sv"], NO: ["no"], FI: ["fi", "sv"], PL: ["pl"],
+  CA: ["en", "fr"],
+};
+export function countryLang(country: string | null | undefined, accept?: string | null): Lang | null {
+  const langs = country ? COUNTRY_LANGS[country.toUpperCase()] : undefined;
+  if (!langs) return country ? DEFAULT_LANG : null;
+  if (langs.length > 1 && accept) {
+    const b = pickLang(accept);
+    if (langs.includes(b)) return b;
+  }
+  return langs[0];
+}
 export const sitePath = (lang: Lang, ...rest: string[]) => `/${[lang, ...rest].filter(Boolean).join("/")}`;
 export const racesPath = (lang: Lang) => sitePath(lang, RACES_SEG[lang]);
