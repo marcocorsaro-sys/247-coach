@@ -403,7 +403,10 @@ export async function stepFacts(admin: SupabaseClient, r: Race, f: Facts | null,
       }
       if (!officialUrl) await admin.from("event_race_facts").upsert({ race_id: r.id, official_at: new Date(Date.now() - 23 * DAY).toISOString() } as never, { onConflict: "race_id" }); // riprova tra una settimana
     }
-    if (old(row.results_at, 30)) {
+    // dopo la gara: risultati dell'edizione appena corsa, ricontrollati ogni giorno per 3 settimane
+    const raceT = r.race_date ? Date.parse(r.race_date) : NaN;
+    const justRaced = Number.isFinite(raceT) && Date.now() > raceT + DAY && Date.now() < raceT + 21 * DAY && Number(row.results_year ?? 0) < Number(String(r.race_date).slice(0, 4));
+    if (old(row.results_at, justRaced ? 0.9 : 30)) {
       try {
         const latest = await findCoachcoxRace(r);
         if (!latest) return save({ results_at: new Date().toISOString() }, "results:none");
