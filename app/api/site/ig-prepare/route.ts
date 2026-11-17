@@ -20,7 +20,10 @@ export async function GET(req: Request) {
   const admin = createAdminClient();
   const horizon = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
   const one = url.searchParams.get("id");
-  const q = admin.from("ig_plan").select("id,race_id,kind,lang,publish_on").order("publish_on").limit(12);
+  // solo gli account Instagram già collegati (ig_accounts.active): gli altri aspettano
+  const { data: accs } = await admin.from("ig_accounts").select("account").eq("active", true);
+  const active = (accs ?? []).map((a: { account: string }) => a.account);
+  const q = admin.from("ig_plan").select("id,race_id,kind,lang,publish_on,account").in("account", active.length ? active : ["-"]).order("publish_on").limit(12);
   const { data: plans } = one ? await q.eq("id", one) : await q.eq("status", "planned").lte("publish_on", horizon);
   const done: string[] = [];
   for (const p of plans ?? []) {
