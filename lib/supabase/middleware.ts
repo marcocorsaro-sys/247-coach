@@ -65,6 +65,7 @@ export async function updateSession(request: NextRequest) {
     // Immagini dei post Instagram (Windsor le scarica da un URL pubblico)
     path.startsWith("/ig/") ||
     path.startsWith("/ig-media/") ||
+    path.startsWith("/li-media/") ||
     // Icona e manifest: iOS e i browser li scaricano senza cookie (appena
     // si salva il link, prima del login). Se rimandassero al login, l'icona
     // non comparirebbe mai.
