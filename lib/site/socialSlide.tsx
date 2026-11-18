@@ -120,7 +120,7 @@ export function SocialSlideView({ s, i, total, bg, credit }: { s: SocialSlide; i
 
       {/* piede: credito della foto */}
       <div style={{ position: "absolute", left: 72, right: 72, bottom: 44, display: "flex", justifyContent: "space-between", fontSize: 20, color: DIM }}>
-        <span>{credit ?? ""}</span>
+        <span style={{ maxWidth: 660, overflow: "hidden", whiteSpace: "nowrap" }}>{(credit ?? "").length > 78 ? `${(credit ?? "").slice(0, 76)}…` : credit ?? ""}</span>
         <span style={{ fontFamily: FD, fontWeight: 700, fontSize: 26, letterSpacing: 2, color: SOFT }}>247COACHAI.COM</span>
       </div>
     </div>
