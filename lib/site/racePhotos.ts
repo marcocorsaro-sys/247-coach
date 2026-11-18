@@ -58,7 +58,7 @@ async function commonsSearch(q: string): Promise<PhotoCand[]> {
 async function thumb64(url: string): Promise<string | null> {
   // miniatura 640px: dalla thumb ridimensionata, oppure costruita dall'originale
   const m = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f])\/([0-9a-f]{2})\/([^/]+)$/.exec(url);
-  const small = /\/\d+px-/.test(url) ? url.replace(/\/(\d+)px-/, "/640px-") : m ? `https://upload.wikimedia.org/wikipedia/commons/thumb/${m[1]}/${m[2]}/${m[3]}/640px-${m[3]}` : url;
+  const small = /\/\d+px-/.test(url) ? url.replace(/\/(\d+)px-/, "/960px-") : m ? `https://upload.wikimedia.org/wikipedia/commons/thumb/${m[1]}/${m[2]}/${m[3]}/960px-${m[3]}` : url;
   const r = await fetch(small, { headers: { "user-agent": PHOTO_UA }, signal: AbortSignal.timeout(20_000) }).catch(() => null);
   if (!r?.ok) return null;
   const buf = Buffer.from(await r.arrayBuffer());
