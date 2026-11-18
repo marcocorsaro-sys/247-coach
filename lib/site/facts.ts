@@ -53,7 +53,7 @@ export interface Results {
 // ---------------------------------------------------------------- geo
 // Gare il cui nome non è una località cercabile.
 // Nomi paese in italiano o varianti → nome inglese usato da Open-Meteo.
-const COUNTRY_EN: Record<string, string> = {
+export const COUNTRY_EN: Record<string, string> = {
   spagna: "Spain", germania: "Germany", italia: "Italy", "regno unito": "United Kingdom", danimarca: "Denmark", svezia: "Sweden",
   svizzera: "Switzerland", francia: "France", "türkiye": "Turkey", turchia: "Turkey", "chinese taipei": "Taiwan", austria: "Austria",
   portogallo: "Portugal", "paesi bassi": "Netherlands", olanda: "Netherlands", belgio: "Belgium", polonia: "Poland", finlandia: "Finland",

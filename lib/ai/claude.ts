@@ -45,7 +45,15 @@ export async function generateStructured<T>(opts: {
   effort?: "low" | "medium" | "high";
   /** Modello diverso da AI_MODEL (es. traduzioni con un modello più economico). */
   model?: string;
+  /** Immagini da mostrare al modello prima del prompt (JPEG in base64). */
+  images?: string[];
 }): Promise<AiCallResult<T>> {
+  const content = opts.images?.length
+    ? [
+        ...opts.images.map((data) => ({ type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data } })),
+        { type: "text" as const, text: opts.prompt },
+      ]
+    : opts.prompt;
   try {
     const stream = client().beta.messages.stream({
       model: opts.model ?? AI_MODEL,
@@ -61,7 +69,7 @@ export async function generateStructured<T>(opts: {
           schema: opts.schema,
         },
       },
-      messages: [{ role: "user", content: opts.prompt }],
+      messages: [{ role: "user", content }],
     });
     const message = await stream.finalMessage();
 
