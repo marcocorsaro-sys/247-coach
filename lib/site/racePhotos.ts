@@ -56,7 +56,9 @@ async function commonsSearch(q: string): Promise<PhotoCand[]> {
 }
 
 async function thumb64(url: string): Promise<string | null> {
-  const small = url.replace(/\/(\d+)px-/, "/640px-");
+  // miniatura 640px: dalla thumb ridimensionata, oppure costruita dall'originale
+  const m = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f])\/([0-9a-f]{2})\/([^/]+)$/.exec(url);
+  const small = /\/\d+px-/.test(url) ? url.replace(/\/(\d+)px-/, "/640px-") : m ? `https://upload.wikimedia.org/wikipedia/commons/thumb/${m[1]}/${m[2]}/${m[3]}/640px-${m[3]}` : url;
   const r = await fetch(small, { headers: { "user-agent": PHOTO_UA }, signal: AbortSignal.timeout(20_000) }).catch(() => null);
   if (!r?.ok) return null;
   const buf = Buffer.from(await r.arrayBuffer());
@@ -84,7 +86,8 @@ export async function findRacePhoto(admin: SupabaseClient, race: RaceRow, geoLab
   const imgs: string[] = [];
   const shown: PhotoCand[] = [];
   for (const c of cands) {
-    const b = await thumb64(c.url);
+    await new Promise((r) => setTimeout(r, 300)); // gentile con Wikimedia
+    const b = await thumb64(c.url) ?? (await new Promise((r) => setTimeout(r, 2000)), await thumb64(c.url));
     if (b) { imgs.push(b); shown.push(c); }
   }
   if (!shown.length) {

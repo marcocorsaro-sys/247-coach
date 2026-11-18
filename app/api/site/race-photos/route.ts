@@ -24,7 +24,14 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().slice(0, 10);
   // da fare: mai cercate, oppure in errore da più di un giorno; prima le gare future più vicine, poi le passate recenti
   const todo = ((races ?? []) as { id: string; name: string; country: string | null; city: string | null; water_type: string | null; race_date: string | null }[])
-    .filter((r) => (one ? r.id === one : !done.has(r.id) || (done.get(r.id)!.status === "error" && Date.now() - Date.parse(done.get(r.id)!.checked_at ?? "0") > 864e5)))
+    .filter((r) => {
+      if (one) return r.id === one;
+      const h = done.get(r.id);
+      if (!h) return true;
+      const age = Date.now() - Date.parse(h.checked_at ?? "0");
+      if (h.status === "pending") return age > 30 * 60e3; // un altro giro ci sta lavorando
+      return h.status === "error" && age > 6 * 3600e3;
+    })
     .sort((a, b) => {
       const fa = (a.race_date ?? "9") >= today, fb = (b.race_date ?? "9") >= today;
       if (fa !== fb) return fa ? -1 : 1;
@@ -35,6 +42,7 @@ export async function GET(req: Request) {
   const res: string[] = [];
   for (const r of todo) {
     if (Date.now() - t0 > BUDGET_MS) break;
+    await admin.from("race_photos").upsert({ race_id: r.id, status: "pending", checked_at: new Date().toISOString() } as never);
     const o = await findRacePhoto(admin as never, r, geo.get(r.id)).catch((e) => ({ status: "error", note: String(e) }));
     res.push(`${r.name}:${o.status}`);
   }
