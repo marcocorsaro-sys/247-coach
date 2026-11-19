@@ -3,6 +3,7 @@
 // (prima quelle più vicine nel calendario) cerca su Wikimedia Commons e fa
 // scegliere a Claude. GET ?secret=… [&race=<id>] (rifà quella gara)
 // ============================================================================
+import { opsAuthorized } from "@/lib/server/opsAuth";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { findRacePhoto } from "@/lib/site/racePhotos";
@@ -12,9 +13,7 @@ const BUDGET_MS = 230_000;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const secret = process.env.CRON_SECRET;
-  const ok = secret && (url.searchParams.get("secret") === secret || req.headers.get("authorization") === `Bearer ${secret}`);
-  if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!(await opsAuthorized(req))) return NextResponse.json({ error: "not found" }, { status: 404 });
   const t0 = Date.now();
   const admin = createAdminClient();
   const one = url.searchParams.get("race");

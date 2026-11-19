@@ -4,6 +4,7 @@
 // domani (planned → ready). La pubblicazione la fa il task programmato via Windsor.
 // GET ?secret=… [&id=<riga>] (riscrive quel post)
 // ============================================================================
+import { opsAuthorized } from "@/lib/server/opsAuth";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLiPost, rubricFor } from "@/lib/site/liContent";
@@ -12,9 +13,7 @@ export const maxDuration = 300;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const secret = process.env.CRON_SECRET;
-  const ok = secret && (url.searchParams.get("secret") === secret || req.headers.get("authorization") === `Bearer ${secret}`);
-  if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!(await opsAuthorized(req))) return NextResponse.json({ error: "not found" }, { status: 404 });
   const admin = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
   const rows = Array.from({ length: 14 }, (_, k) => {

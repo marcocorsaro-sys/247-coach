@@ -4,6 +4,7 @@
 // I risultati aspettano l'edizione appena corsa fino a 10 giorni, poi si saltano.
 // GET ?secret=… [&id=<piano>] (rigenera quel post)
 // ============================================================================
+import { opsAuthorized } from "@/lib/server/opsAuth";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildIgContent } from "@/lib/site/igContent";
@@ -13,9 +14,7 @@ const BUDGET_MS = 240_000;
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const secret = process.env.CRON_SECRET;
-  const ok = secret && (url.searchParams.get("secret") === secret || req.headers.get("authorization") === `Bearer ${secret}`);
-  if (!ok) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!(await opsAuthorized(req))) return NextResponse.json({ error: "not found" }, { status: 404 });
   const t0 = Date.now();
   const admin = createAdminClient();
   const horizon = new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10);
@@ -23,7 +22,7 @@ export async function GET(req: Request) {
   // solo gli account Instagram già collegati (ig_accounts.active): gli altri aspettano
   const { data: accs } = await admin.from("ig_accounts").select("account").eq("active", true);
   const active = (accs ?? []).map((a: { account: string }) => a.account);
-  const q = admin.from("ig_plan").select("id,race_id,kind,lang,publish_on,account").in("account", active.length ? active : ["-"]).order("publish_on").limit(12);
+  const q = admin.from("ig_plan").select("id,race_id,kind,lang,publish_on,account,brief").in("account", active.length ? active : ["-"]).order("publish_on").limit(12);
   const { data: plans } = one ? await q.eq("id", one) : await q.eq("status", "planned").lte("publish_on", horizon);
   const done: string[] = [];
   for (const p of plans ?? []) {

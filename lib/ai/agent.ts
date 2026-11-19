@@ -19,8 +19,14 @@ const MAX_STEPS = 8;
 const HISTORY_ROWS = 10;
 const HISTORY_HOURS = 24;
 
+/** Dal 19/11/2026 l'agente è attivo per tutti gli atleti 24/7 Coach (il webhook lo
+ *  chiama solo per loro). TELEGRAM_AGENT_ATHLETE_IDS=off lo spegne; una lista di id
+ *  lo limita a quegli atleti. */
 export function agentEnabled(athleteId: string): boolean {
-  return (process.env.TELEGRAM_AGENT_ATHLETE_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean).includes(athleteId);
+  const v = (process.env.TELEGRAM_AGENT_ATHLETE_IDS ?? "").trim();
+  if (!v || v === "all") return true;
+  if (v === "off") return false;
+  return v.split(",").map((s) => s.trim()).filter(Boolean).includes(athleteId);
 }
 
 // Solo lettura, più message_coach perché ciò che l'atleta scriveva al coach da
