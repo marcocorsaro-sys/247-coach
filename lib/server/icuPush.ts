@@ -6,6 +6,7 @@
 // Best-effort: gli errori non bloccano mai salvataggi o pubblicazioni.
 // ============================================================================
 
+import { athleteTz, localDate } from "@/lib/server/tz";
 import type { createClient } from "@/lib/supabase/server";
 import {
   createWorkoutEvent,
@@ -513,7 +514,7 @@ export async function pushWeekToIntervals(
     // 24/7 Coach: non si rimandano all'orologio le sedute dei giorni passati né quelle già svolte
     // (closePastPlanned le toglie dal calendario, il ri-push non deve ricrearle).
     if ((await aiAthleteIds()).has(week.athlete_id)) {
-      const todayRome = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
+      const todayRome = localDate(await athleteTz(supabase as never, week.athlete_id));
       const closed = await closedSessionIds(supabase as never, week.athlete_id, sessions.map((s) => s.id));
       sessions = sessions.filter((s) => toISODate(addDays(parseDate(week.week_start), s.day_of_week)) >= todayRome && !closed.has(s.id));
     }

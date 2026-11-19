@@ -12,6 +12,7 @@
 //    disponibilità dichiarata, max 2 sedute/giorno, zone clampate.
 // ============================================================================
 
+import { raceSheetText } from "@/lib/ai/raceSheet";
 import { loadReadiness, readinessText } from "@/lib/server/readiness";
 import { notifyPlanUpdated } from "@/lib/notify/athlete";
 import { athletePerformance } from "@/lib/server/raceHistory";
@@ -260,6 +261,9 @@ async function buildContext(admin: SupabaseClient, athleteId: string): Promise<s
   try { perfText = (await athletePerformance(admin, athleteId)).text; } catch { /* storico non disponibile */ }
   let readyText = "";
   try { readyText = readinessText(await loadReadiness(admin as never, athleteId)); } catch { /* niente benessere */ }
+  // Scheda della gara obiettivo dal sito (percorso, meteo, acqua, cut-off).
+  let sheetText = "";
+  try { sheetText = await raceSheetText(admin, races); } catch { /* gara non tra quelle del sito */ }
 
   return [
     `ATLETA: ${p?.full_name ?? "—"}`,
@@ -297,6 +301,7 @@ ${(ai as { reference_plan: string }).reference_plan}
             .join("; ")
         : "nessuna inserita"
     }`,
+    sheetText,
     `DISPONIBILITÀ: ${ai.availability_days ?? "?"} giorni/settimana, ~${ai.availability_hours ?? "?"} ore/settimana.${
       ai.weekday_minutes_max != null
         ? ` WEEKDAY MAX: ${ai.weekday_minutes_max} minuti per seduta dal lunedì al venerdì (mattina presto, prima del lavoro).`

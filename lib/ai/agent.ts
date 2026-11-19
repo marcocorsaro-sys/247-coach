@@ -12,6 +12,7 @@ import { computeForm, formText } from "@/lib/ai/fitness";
 import { freshReadiness, readinessText } from "@/lib/server/readiness";
 import { loadIntervalsConnection } from "@/lib/server/intervals";
 import { weatherFor } from "@/lib/server/weather";
+import { athleteTz, localDate } from "@/lib/server/tz";
 
 const MODEL = process.env.TELEGRAM_AGENT_MODEL || "claude-sonnet-5-5";
 const MAX_STEPS = 8;
@@ -56,7 +57,6 @@ const TOOLS: Anthropic.Tool[] = [
   ...EXTRA_TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema as unknown as Anthropic.Tool.InputSchema })),
 ];
 
-const romeDate = (offsetDays = 0) => new Date(Date.now() + offsetDays * 864e5).toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
 
 async function runTool(ctx: Ctx, name: string, args: Json): Promise<string> {
   switch (name) {
@@ -67,7 +67,7 @@ async function runTool(ctx: Ctx, name: string, args: Json): Promise<string> {
       return readinessText(await freshReadiness(ctx.admin as never, ctx.athleteId, conn).catch(() => null)) || "Nessun dato di benessere (serve Garmin collegato a Intervals.icu).";
     }
     case "get_weather": {
-      const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : romeDate(1);
+      const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : localDate(await athleteTz(ctx.admin as never, ctx.athleteId), 1);
       let place = typeof args.place === "string" ? args.place.trim() : "";
       if (!place) {
         const { data } = await ctx.admin.from("ai_athlete_profiles").select("weather_weekday, weather_weekend, home_base").eq("athlete_id", ctx.athleteId).maybeSingle();
@@ -83,11 +83,11 @@ async function runTool(ctx: Ctx, name: string, args: Json): Promise<string> {
   }
 }
 
-function system(ctx: Ctx): string {
-  const now = new Date().toLocaleString("it-IT", { timeZone: "Europe/Rome", weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function system(ctx: Ctx, tz: string): string {
+  const now = new Date().toLocaleString("it-IT", { timeZone: tz, weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
   return [
     `Sei l'assistente personale di ${ctx.name} su 24/7 Coach, il suo allenatore di endurance AI${ctx.coach !== "Coach" ? ` (lui lo chiama ${ctx.coach})` : ""}. Parli con ${ctx.name.split(" ")[0]} su Telegram.`,
-    `Adesso: ${now} (Europe/Rome).`,
+    `Adesso: ${now} (fuso dell'atleta: ${tz}).`,
     "Rispondi alle sue domande su allenamenti, piano, forma, prontezza, meteo, gare e attività svolte. Per ogni dato usa gli strumenti: non inventare mai numeri, date, ritmi o previsioni, e se uno strumento non ha il dato dillo.",
     "Stile Telegram: breve, diretto, tono amichevole da coach, in italiano. Testo semplice: niente markdown, niente tabelle, niente titoli; al massimo elenchi con il trattino e qualche emoji. Mai più di 12-15 righe, salvo che ti chieda il dettaglio di un allenamento.",
     "Per le date relative (oggi, domani, sabato) calcola il giorno esatto dalla data di adesso. Se la richiesta è ambigua scegli l'interpretazione più probabile e dilla in poche parole.",
@@ -122,7 +122,7 @@ export async function runAgent(athleteId: string, text: string): Promise<string>
   const history = await loadHistory(athleteId);
   const messages: Anthropic.MessageParam[] = [...history, { role: "user", content: text }];
   const client = new Anthropic();
-  const sys = system(ctx);
+  const sys = system(ctx, await athleteTz(ctx.admin as never, ctx.athleteId));
 
   let reply = "";
   for (let step = 0; step < MAX_STEPS; step++) {

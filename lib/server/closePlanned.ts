@@ -7,6 +7,7 @@
 //    scrivimelo"), registra la seduta come non svolta e la toglie dal calendario.
 // Non tocca mai gli atleti di Irene né le tabelle ombra.
 // ============================================================================
+import { athleteTz, localDate, localHour } from "@/lib/server/tz";
 import { aiAthleteIds } from "@/lib/server/appScope";
 import { loadIntervalsConnection } from "@/lib/server/intervals";
 import { deleteEvent, listEvents, type IntervalsCalendarEvent } from "@/lib/intervals/api";
@@ -16,7 +17,6 @@ type Db = { from: (t: string) => any }; // eslint-disable-line @typescript-eslin
 
 const UUID_RX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const romeDay = (d: Date | string = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date(d));
-const romeHour = () => Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hour: "2-digit", hour12: false }).format(new Date()));
 const addDays = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const mondayOf = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
 const dayLabel = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
@@ -35,11 +35,12 @@ export async function closePastPlanned(db: Db, athleteId: string): Promise<{ ask
   const prof = (ap ?? {}) as { shadow_plan?: boolean; telegram_chat_id?: number | string | null; coach_name?: string | null };
   if (prof.shadow_plan) return { asked: 0, deleted: 0 };
   const coach = prof.coach_name?.trim() || "il tuo coach";
-  const today = romeDay();
+  const tz = await athleteTz(db as never, athleteId);
+  const today = localDate(tz);
 
   // 1) Giorni passati (ultimi 3) con sedute senza esito: chiedi e chiudi.
   let asked = 0;
-  if (romeHour() >= 7) {
+  if (localHour(tz) >= 7) {
     const from = addDays(today, -3);
     const { data: wks } = await db.from("training_weeks").select("id, week_start").eq("athlete_id", athleteId).eq("status", "published").gte("week_start", mondayOf(from)).lte("week_start", today);
     const W = (wks ?? []) as { id: string; week_start: string }[];

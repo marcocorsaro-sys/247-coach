@@ -4,6 +4,7 @@
 // titolare su Telegram il confronto con la seduta prevista in tabella.
 // GET /api/ai/watch  (cron, Authorization: Bearer CRON_SECRET) o ?secret=
 // ============================================================================
+import { athleteTz, localHour } from "@/lib/server/tz";
 import { NextResponse } from "next/server";
 import { aiAthleteIds } from "@/lib/server/appScope";
 import { tgSend } from "@/lib/notify/athlete";
@@ -62,11 +63,12 @@ export async function GET(req: Request) {
   const ai = await aiAthleteIds();
 
   // Messaggi del coach in coda (coach_outbox): partono a ogni giro, solo atleti 24/7 Coach.
-  // Niente messaggi di notte: la coda parte solo tra le 7 e le 22 (ora italiana).
-  const romeH = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hour: "2-digit", hour12: false }).format(new Date()));
-  if (!dry && romeH >= 7 && romeH < 22) {
+  // Niente messaggi di notte: la coda parte solo tra le 7 e le 22 (nel fuso di ogni atleta).
+  if (!dry) {
     const { data: queued } = await admin.from("coach_outbox" as never).select("id, athlete_id, text").is("sent_at", null).order("created_at");
     for (const q of (queued ?? []) as { id: string; athlete_id: string; text: string }[]) {
+      const qh = localHour(await athleteTz(admin as never, q.athlete_id));
+      if (qh < 7 || qh >= 22) continue; // niente messaggi di notte, nel fuso dell'atleta
       if (!ai.has(q.athlete_id)) { await admin.from("coach_outbox" as never).update({ error: "non 247" } as never).eq("id", q.id); continue; }
       const { data: p } = await admin.from("ai_athlete_profiles").select("telegram_chat_id").eq("athlete_id", q.athlete_id).maybeSingle();
       const chat = (p as { telegram_chat_id?: number | string | null } | null)?.telegram_chat_id;

@@ -1,6 +1,7 @@
 // Un messaggio dell'atleta al suo coach, da qualunque canale (app, Claude/
 // ChatGPT via MCP, Telegram): triage → salva in ai_feedback → se serve,
 // revisione del piano in background (che poi notifica l'atleta).
+import { athleteTz } from "@/lib/server/tz";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInitialPlan, upcomingPlanText } from "@/lib/ai/plan";
@@ -40,7 +41,7 @@ export async function handleCoachMessage(
     .filter((a) => (a.moving_time_s ?? 0) >= 180)
     .map((a) => `${new Date(a.start_date).toLocaleString("it-IT", { timeZone: "UTC", weekday: "short", hour: "2-digit", minute: "2-digit" })} ${a.discipline} ${a.name ?? ""} ${Math.round((a.moving_time_s ?? 0) / 60)}'${a.distance_m ? ` ${(a.distance_m / 1000).toFixed(1)} km` : ""}${a.average_heartrate ? ` FC ${Math.round(a.average_heartrate)}` : ""}${a.average_watts ? ` ${Math.round(a.average_watts)} W` : ""}${a.training_load ? ` carico ${Math.round(a.training_load)}` : ""}`)
     .join("; ");
-  const todayLabel = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Rome" });
+  const todayLabel = new Date().toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", timeZone: await athleteTz(admin as never, athleteId) });
   // Richiesta esplicita di ricalcolo soglie: lo facciamo davvero, dai dati.
   if (/(soglie|soglia|threshold|zone)/i.test(message) && /(ricalcol|ricircol|aggiorn|rivedi|recalc|update)/i.test(message)) {
     const r = await recalcRunThresholds(admin as never, athleteId);

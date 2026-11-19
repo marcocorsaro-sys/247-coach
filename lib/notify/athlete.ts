@@ -10,6 +10,7 @@ import { describeSteps, type StepLite } from "@/lib/training/describe";
 import type { Discipline, Fitness } from "@/lib/training/zones";
 import { loadReadiness } from "@/lib/server/readiness";
 import { tomorrowWeather } from "@/lib/server/weather";
+import { athleteTz, localDate } from "@/lib/server/tz";
 
 const APP = process.env.NEXT_PUBLIC_APP_URL ?? "https://247coachai.com";
 const ICON: Record<string, string> = { swim: "🏊", bike: "🚴", run: "🏃", athletics: "🏃", other: "💪" };
@@ -131,9 +132,7 @@ function addDays(iso: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-function romeToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
-}
+
 
 const line = (s: Sess, en: boolean) =>
   `${ICON[s.discipline] ?? "•"} <b>${(en ? GIORNI_EN : GIORNI_IT)[s.dow]}</b> · ${esc(s.title ?? s.discipline)}${s.volume_value ? ` (${esc(s.volume_value)})` : ""}`;
@@ -144,7 +143,7 @@ export async function notifyPlanUpdated(athleteId: string, opts: { reason?: stri
   const c = await athleteCtx(admin, athleteId);
   if (!c.notifyPlan) return "off";
   const en = c.lang === "en";
-  const today = romeToday();
+  const today = localDate(await athleteTz(admin, athleteId));
   const next = await sessionsBetween(admin, athleteId, addDays(today, 1), addDays(today, 3));
   const { data: wk } = await admin.from("training_weeks").select("coach_comment").eq("athlete_id", athleteId).eq("status", "published").lte("week_start", addDays(today, 1)).order("week_start", { ascending: false }).limit(1).maybeSingle();
   const focus = (wk as { coach_comment?: string | null } | null)?.coach_comment;
@@ -167,7 +166,7 @@ export async function eveningMessage(athleteId: string): Promise<{ text: string;
   const admin = createAdminClient();
   const c = await athleteCtx(admin, athleteId);
   const en = c.lang === "en";
-  const tomorrow = addDays(romeToday(), 1);
+  const tomorrow = localDate(await athleteTz(admin, athleteId), 1);
   const ss = await sessionsBetween(admin, athleteId, tomorrow, tomorrow);
   const { data: fit } = await admin.from("athlete_fitness").select("*").eq("athlete_id", athleteId).maybeSingle();
   const f = (fit ?? { max_hr: null, resting_hr: null, lthr: null, threshold_pace_run_s_per_km: null, ftp_watts: null, css_swim_s_per_100m: null }) as Fitness;
@@ -219,7 +218,7 @@ export async function todayMessage(athleteId: string): Promise<string> {
   const admin = createAdminClient();
   const c = await athleteCtx(admin, athleteId);
   const en = c.lang === "en";
-  const d = romeToday();
+  const d = localDate(await athleteTz(admin, athleteId));
   const ss = await sessionsBetween(admin, athleteId, d, d);
   if (!ss.length) return en ? "Today is a rest day. 😴" : "Oggi riposo. 😴";
   return [en ? "<b>Today:</b>" : "<b>Oggi:</b>", ...ss.map((s) => line(s, en) + (s.notes ? `\n   <i>${esc(s.notes.slice(0, 220))}</i>` : ""))].join("\n");
