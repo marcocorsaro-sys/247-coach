@@ -73,7 +73,7 @@ export default async function PostPage({ params }: Props) {
           </div>
         </div></section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

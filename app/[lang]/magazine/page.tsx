@@ -48,7 +48,7 @@ export default async function MagazinePage({ params }: Props) {
           ) : <div className="ld-empty"><b>{ml(lang, "title")}</b>{ml(lang, "empty")}</div>}
         </div></section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

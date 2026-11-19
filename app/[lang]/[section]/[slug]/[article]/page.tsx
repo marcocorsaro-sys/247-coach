@@ -274,7 +274,7 @@ async function FacetPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; la
           </div>
         </section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }
@@ -318,7 +318,7 @@ async function ArticleView({ b, lang, a }: { b: RaceBundle; lang: Lang; a: RaceA
           </div>
         </section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }
@@ -418,7 +418,7 @@ async function DataPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lan
           </div>
         </section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

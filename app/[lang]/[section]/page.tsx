@@ -68,7 +68,7 @@ export default async function RacesPage({ params }: Props) {
           </div>
         </section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

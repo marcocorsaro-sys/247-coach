@@ -52,7 +52,7 @@ export default async function CalcPage({ params }: Props) {
           <div className="ld-wrap"><PerformanceCalc races={races} lang={lang} dict={dict} alpha={isAlpha()} /></div>
         </section>
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

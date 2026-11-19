@@ -265,7 +265,7 @@ export default async function RacePage({ params }: Props) {
         </div></section>
         <RaceFunnel race={r} weeks={weeks} lang={lang} dict={dict} alpha={isAlpha()} />
       </main>
-      <SiteFooter t={t} />
+      <SiteFooter t={t} lang={lang} />
     </div>
   );
 }

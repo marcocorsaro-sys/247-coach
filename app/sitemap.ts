@@ -4,6 +4,7 @@ import { listRaces, racePath } from "@/lib/site/races";
 import { LANGS, racesPath, sitePath } from "@/lib/i18n/config";
 import { createPublicClient } from "@/lib/supabase/public";
 import { availableLangsMap, hasLang } from "@/lib/site/seoLangs";
+import { COACH_PAGES, coachPath } from "@/lib/site/coach";
 import { TOPIC_FACET, dataFacetPath, dataFacetsFor, facetPath, facetsFor } from "@/lib/site/facets";
 
 export const revalidate = 3600;
@@ -19,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     availableLangsMap("site_magazine_translations"),
   ]);
   const out: MetadataRoute.Sitemap = [{ url: `${base}/privacy`, priority: 0.2 }, { url: `${base}/terms`, priority: 0.2 }];
+  for (const l of ["en", "it"] as const) for (const k of COACH_PAGES) out.push({ url: `${base}${coachPath(l, k)}`, changeFrequency: "weekly", priority: k === "hub" ? 0.9 : 0.8 });
   for (const lang of LANGS) {
     out.push({ url: `${base}${sitePath(lang)}`, changeFrequency: "daily", priority: lang === "en" || lang === "it" ? 1 : 0.8 });
     out.push({ url: `${base}${racesPath(lang)}`, changeFrequency: "daily", priority: 0.9 });

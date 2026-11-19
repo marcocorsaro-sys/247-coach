@@ -7,13 +7,14 @@ import { magPath, ml } from "@/lib/site/magazine-i18n";
 import LangSwitch from "./LangSwitch";
 import AppLink from "./AppLink";
 import GeoLangHint from "./GeoLangHint";
+import { COACH_PAGES, FOOT, PAGE_NAME, coachLang, coachPath } from "@/lib/site/coach";
 
 export const ALPHA_UNTIL = "2026-12-31";
 export function isAlpha(): boolean {
   return new Date() <= new Date(ALPHA_UNTIL + "T23:59:59+01:00");
 }
 
-export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; active?: "gare" | "advisor" | "calc" | "magazine"; altPaths?: Partial<Record<Lang, string>> }) {
+export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; active?: "gare" | "advisor" | "calc" | "magazine" | "coach" | "how"; altPaths?: Partial<Record<Lang, string>> }) {
   const alpha = isAlpha();
   const hrefs = Object.fromEntries(LANGS.map((l) => [l, altPaths?.[l] ?? sitePath(l)]));
   return (
@@ -27,9 +28,9 @@ export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; activ
         </Link>
         <nav className="ld-tabs">
           <Link href={racesPath(lang)} className={active === "gare" ? "on" : ""}>{t("nav.races")}</Link>
+          <Link href={coachPath(lang)} className={active === "coach" ? "on" : ""}>{t("nav.coach")}</Link>
+          <Link href={coachPath(lang, "how")} className={active === "how" ? "on" : ""}>{t("nav.how")}</Link>
           <Link href={magPath(lang)} className={active === "magazine" ? "on" : ""}>{ml(lang, "title")}</Link>
-          <Link href={`/${lang}/calc`} className={active === "calc" ? "on" : ""}>{t("nav.calc")}</Link>
-          <Link href={`${sitePath(lang)}#advisor`} className={active === "advisor" ? "on" : ""}>{t("nav.advisor")}</Link>
           <AppLink login={t("nav.login")} app={lang === "it" ? "La mia app" : "My app"} />
           <Link href="/registrati" className="btn btn-primary btn-sm">{alpha ? t("nav.startFree") : t("nav.start")}</Link>
           <LangSwitch lang={lang} langs={LANGS.map((l) => ({ code: l, name: LANG_NAME[l], href: altPaths?.[l] ?? sitePath(l) }))} />
@@ -44,19 +45,44 @@ export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; activ
   );
 }
 
-export function SiteFooter({ t }: { t: T }) {
+export function SiteFooter({ t, lang = "en" }: { t: T; lang?: Lang }) {
+  const l = coachLang(lang), f = FOOT[l];
   return (
     <footer className="ld-foot">
+      <div className="ld-wrap ld-fcols">
+        <div>
+          <b>{f.races}</b>
+          <Link href={racesPath(lang)}>{f.all}</Link>
+          <Link href={`${sitePath(lang)}#advisor`}>{f.find}</Link>
+          <Link href={magPath(lang)}>{f.mag}</Link>
+        </div>
+        <div>
+          <b>{f.coach}</b>
+          {COACH_PAGES.map((k) => <Link key={k} href={coachPath(lang, k)}>{PAGE_NAME[l][k]}</Link>)}
+        </div>
+        <div>
+          <b>{f.tools}</b>
+          <Link href={`/${lang}/calc`}>{f.calc}</Link>
+        </div>
+        <div>
+          <b>{f.company}</b>
+          <Link href="/diventa-coach">{f.forCoaches}</Link>
+          <a href="https://www.instagram.com/247coachai/" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.linkedin.com/company/247coach/" target="_blank" rel="noopener">LinkedIn</a>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+        </div>
+      </div>
       <div className="ld-wrap">
         <span>{t("footer.tag")} · {new Date().getFullYear()}</span>
         <span>{t("disc.footer")}</span>
-        <span>24/7 Coach è una soluzione di <a href="https://77os.it/it" target="_blank" rel="noopener">77OS</a> · 77OS S.R.L. · P.IVA 11689230966 · <Link href="/privacy">Privacy</Link> · <Link href="/terms">Terms</Link></span>
+        <span>{f.legal} <a href="https://77os.it/it" target="_blank" rel="noopener">77OS</a> · 77OS S.R.L. · {l === "it" ? "P.IVA" : "VAT"} 11689230966</span>
       </div>
     </footer>
   );
 }
 
 export const DEVICE_CHIPS: { n: string; on?: boolean }[] = [
-  { n: "Garmin", on: true }, { n: "Suunto" }, { n: "COROS" }, { n: "Polar" }, { n: "Wahoo" }, { n: "Zwift" },
-  { n: "Strava", on: true }, { n: "Intervals.icu", on: true }, { n: "FIT / GPX" },
+  { n: "Garmin", on: true }, { n: "Suunto", on: true }, { n: "COROS", on: true }, { n: "Polar", on: true }, { n: "Wahoo", on: true }, { n: "Zwift", on: true },
+  { n: "Strava", on: true }, { n: "Intervals.icu", on: true },
 ];
