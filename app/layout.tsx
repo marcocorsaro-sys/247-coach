@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: APP_TITLE,
   description: APP_DESCRIPTION,
+  applicationName: IS_AI_APP ? "24/7 Coach" : undefined,
   openGraph: { siteName: IS_AI_APP ? "24/7 Coach" : "Tabella", locale: "it_IT", type: "website" },
+  // Google Search Console: il codice di verifica arriva dalla variabile su Vercel.
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 export default function RootLayout({

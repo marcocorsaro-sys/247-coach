@@ -16,14 +16,15 @@ export function orgLd() {
     "@type": "Organization",
     "@id": ORG_ID,
     name: "24/7 Coach",
+    alternateName: ["247coachai", "247 Coach AI", "24/7 Coach AI"],
     url: SITE,
     logo: { "@type": "ImageObject", url: `${SITE}/apple-icon` },
-    sameAs: ["https://www.instagram.com/247coachai"],
+    sameAs: ["https://www.instagram.com/247coachai", "https://www.linkedin.com/company/247coach/"],
   };
 }
 
 export function websiteLd(lang: Lang) {
-  return { "@context": "https://schema.org", "@type": "WebSite", "@id": WEBSITE_ID, name: "24/7 Coach", url: SITE, inLanguage: lang, publisher: { "@id": ORG_ID } };
+  return { "@context": "https://schema.org", "@type": "WebSite", "@id": WEBSITE_ID, name: "24/7 Coach", alternateName: ["247coachai", "247 Coach AI"], url: SITE, inLanguage: lang, publisher: { "@id": ORG_ID } };
 }
 
 const ORGANIZER: Record<string, { name: string; url: string }> = {
