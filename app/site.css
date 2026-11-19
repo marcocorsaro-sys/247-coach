@@ -428,3 +428,16 @@ html{scroll-padding-top:64px}
 .ld-fcols a:hover{color:var(--text)}
 .ld-cclose .btn,.ld-band .btn{white-space:normal;text-align:center}
 .ld-ctalks>div{min-width:0}
+
+/* ponte dal dato al coach */
+.ld-bridge{background:linear-gradient(90deg,rgba(255,77,20,.14),rgba(255,77,20,.03))}
+.ld-bridge-in{display:flex;justify-content:space-between;align-items:center;gap:28px;flex-wrap:wrap}
+.ld-bridge-in>div:first-child{flex:1 1 380px;min-width:0}
+.ld-bridge h2{margin-top:6px;font-size:clamp(1.6rem,3vw,2.3rem)}
+.ld-bridge p:not(.mono){color:var(--text-2);margin-top:10px;max-width:60ch;line-height:1.5}
+.ld-bridge-cta{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.ld-bridge-cta .btn{white-space:normal;text-align:center}
+.ld-bridge-cta a:not(.btn){color:var(--text-2);font-size:.9rem}
+.ld-bridge.compact{padding-block:32px}
+.ld-bridge.compact h2{font-size:clamp(1.3rem,2.4vw,1.7rem)}
+.ld-rhead .ld-cta .btn-lg,.ld-sec .ld-cta .btn-primary{white-space:normal;text-align:center}

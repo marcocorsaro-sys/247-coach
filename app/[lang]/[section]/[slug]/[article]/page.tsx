@@ -11,6 +11,7 @@ import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
 import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
+import { RaceRelated, ServiceBridge, type BridgeKind } from "@/components/site/RaceLinks";
 import { BikeProfile } from "@/components/site/BikeProfile";
 import { PlacesSections } from "@/components/site/RaceContent";
 import { DATA_FACET_I18N, FACET_I18N, FACET_UI, TOPIC_FACET, dataFacetBySlug, dataFacetBySlugAnyLang, dataFacetPath, dataFacetsFor, facetBySlug, facetBySlugAnyLang, facetPath, facetsFor, fillData, fillFacet, type DataFacet, type Facet } from "@/lib/site/facets";
@@ -259,6 +260,7 @@ async function FacetPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; la
           </section>
         ) : null}
 
+        <ServiceBridge race={r} lang={lang} t={t} kind={({ swim: "swim", bike: "bike", run: "run", raceday: "raceday", travel: "generic" } as Record<string, BridgeKind>)[f] ?? "generic"} facts={facts} />
         <section className="ld-sec">
           <div className="ld-wrap">
             <h2>{ui.other}</h2>
@@ -273,6 +275,7 @@ async function FacetPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; la
             <div className="ld-cta"><a className="btn btn-primary" href={`/registrati?race=${encodeURIComponent(r.slug)}&lang=${lang}`}>{t("race.ctaPlan", { name: r.name })}</a><Link className="btn btn-ghost" href={rp}>{ui.back}</Link></div>
           </div>
         </section>
+        <RaceRelated race={r} lang={lang} t={t} />
       </main>
       <SiteFooter t={t} lang={lang} />
     </div>
@@ -314,9 +317,11 @@ async function ArticleView({ b, lang, a }: { b: RaceBundle; lang: Lang; a: RaceA
                 </div>
               </div>
             ) : null}
-            <div className="ld-cta"><Link className="btn btn-primary" href={`${racePath(b.race, lang)}#piano`}>{t("race.ctaPlan", { name: b.race.name })}</Link><Link className="btn btn-ghost" href={racePath(b.race, lang)}>{t("art.back")}</Link></div>
+            <div className="ld-cta"><Link className="btn btn-primary" href={`/registrati?race=${encodeURIComponent(b.race.slug)}&lang=${lang}&from=article`}>{t("race.ctaPlan", { name: b.race.name })}</Link><Link className="btn btn-ghost" href={racePath(b.race, lang)}>{t("art.back")}</Link></div>
           </div>
         </section>
+        <ServiceBridge race={b.race} lang={lang} t={t} kind="generic" compact />
+        <RaceRelated race={b.race} lang={lang} t={t} />
       </main>
       <SiteFooter t={t} lang={lang} />
     </div>
@@ -397,6 +402,7 @@ async function DataPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lan
           </section>
         ) : null}
 
+        <ServiceBridge race={r} lang={lang} t={t} kind={({ results: "results", registration: "registration", weather: "weather", bikeshops: "generic", reviews: "generic", qualification: "qualification", cutoffs: "cutoffs" } as Record<string, BridgeKind>)[f] ?? "generic"} facts={facts} />
         <section className="ld-sec">
           <div className="ld-wrap">
             <h2>{ui.other}</h2>
@@ -417,6 +423,7 @@ async function DataPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lan
             <div className="ld-cta"><a className="btn btn-primary" href={`/registrati?race=${encodeURIComponent(r.slug)}&lang=${lang}`}>{t("race.ctaPlan", { name: r.name })}</a><Link className="btn btn-ghost" href={rp}>{ui.back}</Link></div>
           </div>
         </section>
+        <RaceRelated race={r} lang={lang} t={t} />
       </main>
       <SiteFooter t={t} lang={lang} />
     </div>

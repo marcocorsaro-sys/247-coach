@@ -7,6 +7,8 @@ import { getDict, tr } from "@/lib/i18n";
 import { mdToHtml } from "@/lib/site/md";
 import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
+import { RaceRelated, ServiceBridge } from "@/components/site/RaceLinks";
+import { listRaces } from "@/lib/site/races";
 import { getPost } from "@/lib/site/magazine-read";
 import { magPath, ml } from "@/lib/site/magazine-i18n";
 import type { Finisher } from "@/lib/site/magazine";
@@ -36,6 +38,7 @@ export default async function PostPage({ params }: Props) {
   const t = tr(await getDict(lang));
   const alt = Object.fromEntries(LANGS.map((x) => [x, magPath(x, slug)]));
   const res = p.data.results;
+  const race = p.race_id ? (await listRaces(lang)).find((x) => x.id === p.race_id) ?? null : null;
   return (
     <div className="ld">
       <SiteNav lang={lang} t={t} active="magazine" altPaths={alt} />
@@ -72,6 +75,8 @@ export default async function PostPage({ params }: Props) {
             <Link className="btn btn-ghost" href={magPath(lang)}>{ml(lang, "back")}</Link>
           </div>
         </div></section>
+        {race ? <ServiceBridge race={race} lang={lang} t={t} kind="generic" /> : null}
+        {race ? <RaceRelated race={race} lang={lang} t={t} /> : null}
       </main>
       <SiteFooter t={t} lang={lang} />
     </div>

@@ -10,7 +10,7 @@ import { isLang, LANGS, LOCALE, OG_LOCALE, RACES_SEG, racesPath, type Lang } fro
 import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { isAlpha, SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import { BikeProfile } from "@/components/site/BikeProfile";
-import RaceFunnel from "@/components/site/RaceFunnel";
+import { RaceRelated, ServiceBridge } from "@/components/site/RaceLinks";
 import RaceToc, { type TocItem } from "@/components/site/RaceToc";
 import KonaTable from "@/components/site/KonaTable";
 import { KONA } from "@/lib/site/kona";
@@ -200,6 +200,8 @@ export default async function RacePage({ params }: Props) {
           </section>
         )}
 
+        <ServiceBridge race={r} lang={lang} t={t} kind="race" facts={facts} />
+
         <MediaHighlights race={r} media={media} t={t} />
 
         {KONA[r.slug] ? <KonaTable data={KONA[r.slug]} t={dict} /> : null}
@@ -263,7 +265,8 @@ export default async function RacePage({ params }: Props) {
           <div><h2>{t("calc.calcH")}</h2><p>{t("calc.calcT")}</p></div>
           <Link className="btn btn-ghost btn-lg" href={`/${lang}/calc?race=${r.slug}`}>{t("calc.openCalc")}</Link>
         </div></section>
-        <RaceFunnel race={r} weeks={weeks} lang={lang} dict={dict} alpha={isAlpha()} />
+        <RaceRelated race={r} lang={lang} t={t} />
+        <ServiceBridge race={r} lang={lang} t={t} kind="race" facts={facts} compact />
       </main>
       <SiteFooter t={t} lang={lang} />
     </div>

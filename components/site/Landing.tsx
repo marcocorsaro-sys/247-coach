@@ -5,6 +5,7 @@ import { DEVICE_CHIPS, isAlpha, SiteFooter, SiteNav } from "./SiteShell";
 import RaceAdvisor from "./RaceAdvisor";
 import { RaceCard } from "./RaceCard";
 import { Thread } from "./CoachBits";
+import { LatestMagazine } from "./RaceLinks";
 import { hasRichContent, racePath, type Race } from "@/lib/site/races";
 import { LANGS, racesPath, type Lang } from "@/lib/i18n/config";
 import { getDict, tr } from "@/lib/i18n";
@@ -106,6 +107,7 @@ export default async function Landing({ races, lang }: { races: Race[]; lang: La
             <p className="note">{t("cal.note")}</p>
           </div>
         </section>
+        <LatestMagazine lang={lang} t={t} />
         <section className="ld-sec ld-cclose">
           <div className="ld-wrap">
             <h2>{alpha ? t("home.closeH") : t("home.closeHpaid")}</h2>

@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkSecret } from "@/lib/site/admin";
+import { opsAuthorized } from "@/lib/server/opsAuth";
 import { isLang, LANGS, type Lang } from "@/lib/i18n/config";
 import { translateArticles, translatePlaces, translateRace, translateUi } from "@/lib/site/translate";
 import type { Race, RaceArticle, RaceReview, RaceSegment } from "@/lib/site/races";
@@ -12,7 +13,7 @@ import type { Race, RaceArticle, RaceReview, RaceSegment } from "@/lib/site/race
 export const maxDuration = 300;
 
 export async function GET(req: Request) {
-  if (!checkSecret(req)) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (!checkSecret(req) && !(await opsAuthorized(req))) return NextResponse.json({ error: "not found" }, { status: 404 });
   const url = new URL(req.url);
   const langsParam = (url.searchParams.get("langs") ?? "").split(",").map((s) => s.trim()).filter(isLang) as Lang[];
   const admin = createAdminClient();
