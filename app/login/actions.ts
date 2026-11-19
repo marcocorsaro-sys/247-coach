@@ -1,5 +1,6 @@
 "use server";
 
+import { isAiCoachMode } from "@/lib/ai/mode";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -18,5 +19,6 @@ export async function signIn(formData: FormData) {
   const inv = (await cookies()).get("coach_invite")?.value;
   if (inv && /^[0-9a-f]{6,16}$/.test(inv)) redirect(`/invito/${inv}`);
   if ((await cookies()).get("pro_signup")?.value) redirect("/pro");
-  redirect("/");
+  // 24/7 Coach: la home è il sito pubblico, dopo l'accesso si va all'app.
+  redirect(isAiCoachMode() ? "/atleta" : "/");
 }

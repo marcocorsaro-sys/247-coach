@@ -101,7 +101,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && path === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = isAi ? "/atleta" : "/";
     return NextResponse.redirect(url);
   }
 

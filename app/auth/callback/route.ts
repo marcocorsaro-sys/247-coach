@@ -63,6 +63,6 @@ export async function GET(req: Request) {
   const inv = (await cookies()).get("coach_invite")?.value;
   if (inv && /^[0-9a-f]{6,16}$/.test(inv) && isAiCoachMode()) return NextResponse.redirect(`${origin}/invito/${inv}`);
   if ((await cookies()).get("pro_signup")?.value && isAiCoachMode()) return NextResponse.redirect(`${origin}/pro`);
-  const dest = isNew ? `/onboarding${q.size ? `?${q}` : ""}` : next && next.startsWith("/") ? next : "/";
+  const dest = isNew ? `/onboarding${q.size ? `?${q}` : ""}` : next && next.startsWith("/") ? next : isAiCoachMode() ? "/atleta" : "/";
   return NextResponse.redirect(`${origin}${dest}`);
 }
