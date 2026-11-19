@@ -48,6 +48,10 @@
     {
       "path": "/api/site/li-prepare",
       "schedule": "20 4-20 * * *"
+    },
+    {
+      "path": "/api/site/racebot",
+      "schedule": "30 15,17 * * *"
     }
   ]
 }
