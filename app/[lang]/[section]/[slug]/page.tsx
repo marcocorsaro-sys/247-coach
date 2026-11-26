@@ -22,12 +22,14 @@ import { ArticlesList, MediaFull, MediaHighlights, PlacesSections, pickMedia, So
 export const revalidate = 3600;
 type Props = { params: Promise<{ lang: string; section: string; slug: string }> };
 
-// Nessuna scheda viene preparata in anticipo: 159 gare × 12 lingue rigenerate a ogni
-// pubblicazione volevano dire migliaia di richieste al minuto al database (il 26/11/2026
-// più pubblicazioni ravvicinate lo hanno bloccato). Ogni scheda nasce alla prima visita
-// e resta in cache fino alla revalidate.
-export function generateStaticParams() {
-  return [];
+// Le schede si preparano tutte alla pubblicazione (159 gare × 12 lingue): è un carico pesante sul
+// database, quindi mai più pubblicazioni ravvicinate (il 26/11/2026 sei di fila lo hanno bloccato).
+// Prepararle alla prima visita oggi non funziona: la pagina usa un'API dinamica e va in errore
+// (DYNAMIC_SERVER_USAGE). Da sistemare prima di riprovarci.
+export async function generateStaticParams() {
+  if (!isAiCoachMode()) return [];
+  const races = await listRaces();
+  return LANGS.flatMap((lang) => races.map((r) => ({ lang, section: RACES_SEG[lang], slug: raceSeg(r) })));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
