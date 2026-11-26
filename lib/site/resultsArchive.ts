@@ -69,11 +69,16 @@ export async function harvestQueue(admin: SupabaseClient, opts: { max?: number; 
   const queue = (data ?? []) as { race_id: number; tries: number }[];
   const out: { race: number; rows?: number; error?: string }[] = [];
   if (!queue.length) return { done: out, left: 0 };
-  const api = await apiPath(queue[0].race_id);
+  // versione nota dell'API; la pagina risultati si legge solo se la fonte l'ha cambiata (404)
+  let api = "wp-json/imstats/v1.93/race/results/";
   for (const e of queue) {
     if (Date.now() - t0 > budget) break;
     try {
-      const r = await harvestEdition(admin, e.race_id, api);
+      const r = await harvestEdition(admin, e.race_id, api).catch(async (err: Error) => {
+        if (!/HTTP 404/.test(err.message)) throw err;
+        api = await apiPath(e.race_id);
+        return harvestEdition(admin, e.race_id, api);
+      });
       await markEdition(admin, e.race_id, r);
       out.push({ race: e.race_id, rows: r.rows });
     } catch (err) {
