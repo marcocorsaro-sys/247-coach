@@ -8,7 +8,8 @@
 // ============================================================================
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+// stesso user agent dichiarato che usiamo per i risultati dell'ultima edizione
+const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36 247coachai.com";
 const BASE = "https://www.coachcox.co.uk";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -32,7 +33,7 @@ async function chunked<T>(rows: T[], size: number, fn: (part: T[]) => Promise<{ 
 /** Scarica e salva un'edizione. Restituisce righe e arrivati. */
 export async function harvestEdition(admin: SupabaseClient, raceId: number, api: string): Promise<{ rows: number; finishers: number }> {
   const res = await fetch(`${BASE}/${api}${raceId}`, { headers: { "user-agent": UA, referer: `${BASE}/imstats/race/${raceId}/results/` }, signal: AbortSignal.timeout(60_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)}`);
   const j = (await res.json()) as CcRow[] | { data?: CcRow[] };
   const rows: CcRow[] = Array.isArray(j) ? j : (j.data ?? []);
   if (!rows.length) return { rows: 0, finishers: 0 };
