@@ -12,6 +12,7 @@ import { mdToHtml } from "@/lib/site/md";
 import { availableLangs, seoFor } from "@/lib/site/seoLangs";
 import { SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import { RaceRelated, ServiceBridge, type BridgeKind } from "@/components/site/RaceLinks";
+import RaceHistory from "@/components/site/RaceHistory";
 import { BikeProfile } from "@/components/site/BikeProfile";
 import { PlacesSections } from "@/components/site/RaceContent";
 import { DATA_FACET_I18N, FACET_I18N, FACET_UI, TOPIC_FACET, dataFacetBySlug, dataFacetBySlugAnyLang, dataFacetPath, dataFacetsFor, facetBySlug, facetBySlugAnyLang, facetPath, facetsFor, fillData, fillFacet, type DataFacet, type Facet } from "@/lib/site/facets";
@@ -392,6 +393,7 @@ async function DataPage({ b, lang, f, facets, dfs, facts }: { b: RaceBundle; lan
         ) : (
           <DataFacetBody f={f} facts={facts} b={b} lang={lang} />
         )}
+        {f === "results" ? <RaceHistory slug={r.slug} lang={lang} t={t} /> : null}
 
         {faq.length ? (
           <section className="ld-sec">

@@ -441,3 +441,14 @@ html{scroll-padding-top:64px}
 .ld-bridge.compact{padding-block:32px}
 .ld-bridge.compact h2{font-size:clamp(1.3rem,2.4vw,1.7rem)}
 .ld-rhead .ld-cta .btn-lg,.ld-sec .ld-cta .btn-primary{white-space:normal;text-align:center}
+
+/* statistiche storiche della gara */
+.ld-rs-diff .ld-stat.slow{border-left-color:var(--run)}
+.ld-rs-diff .ld-stat.fast{border-left-color:var(--swim)}
+.ld-scroll{overflow-x:auto;max-width:100%}
+.ld-scroll table{min-width:640px}
+.ld-scroll th{white-space:nowrap}
+.ld-rs-hist{display:flex;align-items:flex-end;gap:2px;height:180px;margin-top:14px;padding-bottom:22px;position:relative;overflow:hidden}
+.ld-rs-hist .col{flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;position:relative}
+.ld-rs-hist .bar{background:var(--lime);border-radius:2px 2px 0 0;min-height:1px}
+.ld-rs-hist .col span{position:absolute;bottom:-20px;left:0;font-size:.68rem;color:var(--text-3);white-space:nowrap}

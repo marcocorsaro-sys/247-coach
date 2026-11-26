@@ -11,6 +11,8 @@ import { getDict, tr, type DictKey } from "@/lib/i18n";
 import { isAlpha, SiteFooter, SiteNav } from "@/components/site/SiteShell";
 import { BikeProfile } from "@/components/site/BikeProfile";
 import { RaceRelated, ServiceBridge } from "@/components/site/RaceLinks";
+import { RaceDifficulty } from "@/components/site/RaceHistory";
+import { raceStatsFor } from "@/lib/site/raceStats";
 import RaceToc, { type TocItem } from "@/components/site/RaceToc";
 import KonaTable from "@/components/site/KonaTable";
 import { KONA } from "@/lib/site/kona";
@@ -204,6 +206,14 @@ export default async function RacePage({ params }: Props) {
           </section>
         )}
 
+        {raceStatsFor(r.slug)?.diff.finish != null ? (
+          <section className="ld-sec" id="velocita">
+            <div className="ld-wrap">
+              <h2>{t("rs.diffH")}</h2>
+              <RaceDifficulty slug={r.slug} lang={lang} t={t} />
+            </div>
+          </section>
+        ) : null}
         <ServiceBridge race={r} lang={lang} t={t} kind="race" facts={facts} />
 
         <MediaHighlights race={r} media={media} t={t} />
