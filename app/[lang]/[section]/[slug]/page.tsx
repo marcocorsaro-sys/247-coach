@@ -22,10 +22,12 @@ import { ArticlesList, MediaFull, MediaHighlights, PlacesSections, pickMedia, So
 export const revalidate = 3600;
 type Props = { params: Promise<{ lang: string; section: string; slug: string }> };
 
-export async function generateStaticParams() {
-  if (!isAiCoachMode()) return [];
-  const races = await listRaces();
-  return LANGS.flatMap((lang) => races.map((r) => ({ lang, section: RACES_SEG[lang], slug: raceSeg(r) })));
+// Nessuna scheda viene preparata in anticipo: 159 gare × 12 lingue rigenerate a ogni
+// pubblicazione volevano dire migliaia di richieste al minuto al database (il 26/11/2026
+// più pubblicazioni ravvicinate lo hanno bloccato). Ogni scheda nasce alla prima visita
+// e resta in cache fino alla revalidate.
+export function generateStaticParams() {
+  return [];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
