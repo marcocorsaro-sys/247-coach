@@ -64,7 +64,7 @@ export async function markEdition(admin: SupabaseClient, raceId: number, r: { ro
 
 /** Lavora la coda: le edizioni più recenti per prime, finché c'è tempo. */
 export async function harvestQueue(admin: SupabaseClient, opts: { max?: number; budgetMs?: number; pauseMs?: number } = {}) {
-  const t0 = Date.now(), max = opts.max ?? 2, budget = opts.budgetMs ?? 220_000, pause = opts.pauseMs ?? 20_000;
+  const t0 = Date.now(), max = opts.max ?? 2, budget = opts.budgetMs ?? 220_000, pause = opts.pauseMs ?? 25_000;
   const { data } = await admin.from("ir_editions").select("race_id,tries").in("status", ["pending", "error"]).lt("tries", 4).order("status", { ascending: false }).order("year", { ascending: false }).limit(max);
   const queue = (data ?? []) as { race_id: number; tries: number }[];
   const out: { race: number; rows?: number; error?: string }[] = [];
@@ -84,7 +84,7 @@ export async function harvestQueue(admin: SupabaseClient, opts: { max?: number; 
       out.push({ race: e.race_id, error: msg });
       if (blocked) break;
     }
-    await sleep(pause);
+    if (e !== queue[queue.length - 1]) await sleep(pause);
   }
   const { count } = await admin.from("ir_editions").select("race_id", { count: "exact", head: true }).in("status", ["pending", "error"]).lt("tries", 4);
   return { done: out, left: count ?? 0 };

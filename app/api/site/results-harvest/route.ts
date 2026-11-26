@@ -1,6 +1,7 @@
 // Archivio risultati: lavora la coda delle edizioni da scaricare.
-// Il cron è spento dal 26/11/2026: la fonte protegge il servizio con una verifica anti-bot,
-// lo scarico in blocco riparte solo con il suo consenso. La rotta resta per i giri manuali.
+// Cron ogni minuto (decisione di Marco, 26/11/2026): al massimo due edizioni per giro, con 25 secondi
+// di pausa. Se la fonte rifiuta (verifica anti-bot, limite) il giro si ferma e l'edizione resta in coda:
+// la protezione non viene mai aggirata. A coda vuota il giro non fa richieste alla fonte.
 //  GET ?token=… [&max=8] [&discover=1]
 import { NextResponse } from "next/server";
 import { opsAuthorized } from "@/lib/server/opsAuth";
