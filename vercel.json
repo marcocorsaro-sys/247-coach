@@ -52,6 +52,10 @@
     {
       "path": "/api/site/racebot",
       "schedule": "30 15,17 * * *"
+    },
+    {
+      "path": "/api/site/results-harvest",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

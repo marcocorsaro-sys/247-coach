@@ -1,0 +1,3 @@
+-- Archivio risultati IRONMAN / 70.3 (fonte: CoachCox imstats, tempi ufficiali).
+-- Tabelle private: solo service role. I nomi stanno in ir_athletes, separati dai tempi.
+-- Schema applicato il 26/11/2026: ir_series, ir_editions (coda), ir_athletes, ir_results.
