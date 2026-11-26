@@ -30,12 +30,8 @@ async function chunked<T>(rows: T[], size: number, fn: (part: T[]) => Promise<{ 
   }
 }
 
-/** Scarica e salva un'edizione. Restituisce righe e arrivati. */
-export async function harvestEdition(admin: SupabaseClient, raceId: number, api: string): Promise<{ rows: number; finishers: number }> {
-  const res = await fetch(`${BASE}/${api}${raceId}`, { headers: { "user-agent": UA, referer: `${BASE}/imstats/race/${raceId}/results/` }, signal: AbortSignal.timeout(60_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160)}`);
-  const j = (await res.json()) as CcRow[] | { data?: CcRow[] };
-  const rows: CcRow[] = Array.isArray(j) ? j : (j.data ?? []);
+/** Salva le righe di un'edizione (così come le dà la fonte). */
+export async function storeEdition(admin: SupabaseClient, raceId: number, rows: CcRow[]): Promise<{ rows: number; finishers: number }> {
   if (!rows.length) return { rows: 0, finishers: 0 };
   const athletes = new Map<number, { aid: number; name: string | null; country: string | null; gender: string | null }>();
   const results = new Map<number, Record<string, unknown>>();
@@ -54,9 +50,21 @@ export async function harvestEdition(admin: SupabaseClient, raceId: number, api:
   return { rows: results.size, finishers: rows.filter((x) => x.fs === "FIN").length };
 }
 
+/** Scarica e salva un'edizione. */
+export async function harvestEdition(admin: SupabaseClient, raceId: number, api: string): Promise<{ rows: number; finishers: number }> {
+  const res = await fetch(`${BASE}/${api}${raceId}`, { headers: { "user-agent": UA, referer: `${BASE}/imstats/race/${raceId}/results/` }, signal: AbortSignal.timeout(60_000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}${/Just a moment/.test(await res.text().catch(() => "")) ? " (verifica anti-bot)" : ""}`);
+  const j = (await res.json()) as CcRow[] | { data?: CcRow[] };
+  return storeEdition(admin, raceId, Array.isArray(j) ? j : (j.data ?? []));
+}
+
+export async function markEdition(admin: SupabaseClient, raceId: number, r: { rows: number; finishers: number }) {
+  await admin.from("ir_editions").update({ status: r.rows ? "done" : "empty", rows: r.rows, finishers: r.finishers, error: null, fetched_at: new Date().toISOString() }).eq("race_id", raceId);
+}
+
 /** Lavora la coda: le edizioni più recenti per prime, finché c'è tempo. */
 export async function harvestQueue(admin: SupabaseClient, opts: { max?: number; budgetMs?: number; pauseMs?: number } = {}) {
-  const t0 = Date.now(), max = opts.max ?? 8, budget = opts.budgetMs ?? 220_000, pause = opts.pauseMs ?? 2500;
+  const t0 = Date.now(), max = opts.max ?? 2, budget = opts.budgetMs ?? 220_000, pause = opts.pauseMs ?? 20_000;
   const { data } = await admin.from("ir_editions").select("race_id,tries").in("status", ["pending", "error"]).lt("tries", 4).order("status", { ascending: false }).order("year", { ascending: false }).limit(max);
   const queue = (data ?? []) as { race_id: number; tries: number }[];
   const out: { race: number; rows?: number; error?: string }[] = [];
@@ -66,14 +74,15 @@ export async function harvestQueue(admin: SupabaseClient, opts: { max?: number; 
     if (Date.now() - t0 > budget) break;
     try {
       const r = await harvestEdition(admin, e.race_id, api);
-      await admin.from("ir_editions").update({ status: r.rows ? "done" : "empty", rows: r.rows, finishers: r.finishers, error: null, tries: e.tries + 1, fetched_at: new Date().toISOString() }).eq("race_id", e.race_id);
+      await markEdition(admin, e.race_id, r);
       out.push({ race: e.race_id, rows: r.rows });
     } catch (err) {
       const msg = (err as Error).message.slice(0, 300);
-      await admin.from("ir_editions").update({ status: "error", error: msg, tries: e.tries + 1 }).eq("race_id", e.race_id);
+      // un rifiuto della fonte (anti-bot, limite, errore suo) non è colpa dell'edizione: resta in coda senza contare il tentativo
+      const blocked = /HTTP (403|429|5\d\d)/.test(msg);
+      await admin.from("ir_editions").update(blocked ? { error: msg } : { status: "error", error: msg, tries: e.tries + 1 }).eq("race_id", e.race_id);
       out.push({ race: e.race_id, error: msg });
-      // se la fonte rifiuta o è giù, inutile insistere in questo giro
-      if (/HTTP (403|429|5\d\d)/.test(msg)) break;
+      if (blocked) break;
     }
     await sleep(pause);
   }

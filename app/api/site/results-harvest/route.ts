@@ -1,5 +1,6 @@
-// Archivio risultati: lavora la coda delle edizioni da scaricare (cron ogni 5 minuti)
-// e una volta al giorno cerca le edizioni nuove.
+// Archivio risultati: lavora la coda delle edizioni da scaricare.
+// Il cron è spento dal 26/11/2026: la fonte protegge il servizio con una verifica anti-bot,
+// lo scarico in blocco riparte solo con il suo consenso. La rotta resta per i giri manuali.
 //  GET ?token=… [&max=8] [&discover=1]
 import { NextResponse } from "next/server";
 import { opsAuthorized } from "@/lib/server/opsAuth";
@@ -23,10 +24,16 @@ export async function GET(req: Request) {
     for (let i = 0; i < uniq.length && !err; i += 500) err = (await admin.from("ir_editions").upsert(uniq.slice(i, i + 500), { onConflict: "race_id", ignoreDuplicates: true })).error?.message ?? null;
     return NextResponse.json({ ok: !err, error: err, series: series.length, editions: uniq.length });
   }
+  if (url.searchParams.get("action") === "status") {
+    const { data } = await admin.from("ir_editions").select("race_id,status").limit(5000);
+    const rows = (data ?? []) as { race_id: number; status: string }[];
+    return NextResponse.json({ total: rows.length, done: rows.filter((r) => r.status === "done" || r.status === "empty").map((r) => r.race_id) });
+  }
   const now = new Date();
   let added: number | undefined;
   if (url.searchParams.get("discover") === "1" || (now.getUTCHours() === 3 && now.getUTCMinutes() < 5)) added = await discoverLatest(admin).catch(() => 0);
-  const max = Math.min(20, Math.max(1, Number(url.searchParams.get("max") ?? 8)));
+  const max = Math.min(20, Math.max(1, Number(url.searchParams.get("max") ?? 2)));
   const r = await harvestQueue(admin, { max });
   return NextResponse.json({ ok: true, added, ...r });
 }
+
