@@ -8,11 +8,18 @@ import LangSwitch from "./LangSwitch";
 import AppLink from "./AppLink";
 import GeoLangHint from "./GeoLangHint";
 import { COACH_PAGES, FOOT, PAGE_NAME, coachLang, coachPath } from "@/lib/site/coach";
-import { ATH, athletesPath } from "@/lib/site/athletes";
+import { ATH, athLang, athletesPath } from "@/lib/site/athletes";
+import SiteSearch, { type SearchTxt } from "./SiteSearch";
 
 export const ALPHA_UNTIL = "2026-12-31";
 export function isAlpha(): boolean {
   return new Date() <= new Date(ALPHA_UNTIL + "T23:59:59+01:00");
+}
+
+/** Testi della ricerca unica (inglese e italiano; le altre lingue usano l'inglese). */
+export function searchTxt(lang: Lang): SearchTxt {
+  const x = ATH[athLang(lang)];
+  return { open: x.sOpen, ph: x.sPh, races: x.sRaces, athletes: x.sAthletes, none: x.sNone, race1: x.race1, raceN: x.raceN, allAth: x.sAllAth };
 }
 
 export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; active?: "gare" | "advisor" | "calc" | "magazine" | "coach" | "how"; altPaths?: Partial<Record<Lang, string>> }) {
@@ -32,6 +39,7 @@ export function SiteNav({ lang, t, active, altPaths }: { lang: Lang; t: T; activ
           <Link href={coachPath(lang)} className={active === "coach" ? "on" : ""}>{t("nav.coach")}</Link>
           <Link href={coachPath(lang, "how")} className={active === "how" ? "on" : ""}>{t("nav.how")}</Link>
           <Link href={magPath(lang)} className={active === "magazine" ? "on" : ""}>{ml(lang, "title")}</Link>
+          <SiteSearch lang={lang} txt={searchTxt(lang)} athletesHref={athletesPath(lang)} />
           <AppLink login={t("nav.login")} app={lang === "it" ? "La mia app" : "My app"} />
           <Link href="/registrati" className="btn btn-primary btn-sm">{alpha ? t("nav.startFree") : t("nav.start")}</Link>
           <LangSwitch lang={lang} langs={LANGS.map((l) => ({ code: l, name: LANG_NAME[l], href: altPaths?.[l] ?? sitePath(l) }))} />

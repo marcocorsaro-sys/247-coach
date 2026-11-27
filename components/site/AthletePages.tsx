@@ -12,8 +12,8 @@ import AthleteSearch from "@/components/site/AthleteSearch";
 import { coachPath } from "@/lib/site/coach";
 import { removeAthlete } from "@/lib/site/athleteActions";
 import {
-  ATH, COMPARE_SEG, REMOVE_SEG, athLang, athletePath, athletesPath, comparePath, delta, fill, flag, getAthlete, hms, raceLabel, removePath,
-  type AthLang, type AthResult, type Athlete,
+  ATH, COMPARE_SEG, EDITIONS, REMOVE_SEG, RESULTS_SEG, athLang, athletePath, athletesPath, comparePath, delta, editionById, editionLabel, editionPath, fill, flag, getAthlete, getEditionResults, hms, raceLabel, removePath,
+  type AthLang, type AthResult, type Athlete, type Edition,
 } from "@/lib/site/athletes";
 
 const SEG: Record<AthLang, string> = { en: "athletes", it: "atleti" };
@@ -69,6 +69,18 @@ export async function HubPage({ lang, seg, race }: { lang: string; seg: string; 
         </section>
         <section className="ld-sec">
           <div className="ld-wrap">
+            <h2>{x.edLatest}</h2>
+            <div className="ld-grid ld-g3" style={{ marginTop: 18 }}>
+              {EDITIONS.slice(0, 24).map((e) => (
+                <Link key={e.id} className="ld-card ld-clink" href={editionPath(l, e.id)}>
+                  <b>{editionLabel(e)} →</b><span>{fmtDate(e.date, l)} · {fill(x.edFound, { n: e.fin.toLocaleString(LOCALE[l]) })}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+        <section className="ld-sec">
+          <div className="ld-wrap">
             <h2>{x.privH}</h2>
             <p className="ld-lead">{x.privP}</p>
             <p style={{ marginTop: 12 }}><Link href={removePath(l)}>{x.privLink} →</Link></p>
@@ -106,6 +118,7 @@ export async function SlugPage({ lang, seg, slug, sp }: { lang: string; seg: str
     if (slug === REMOVE_SEG[other]) redirect(`${athletesPath(l0)}/${REMOVE_SEG[l0]}${qs ? `?${qs}` : ""}`);
   }
   const l = gate(lang, seg, `/${slug}${qs ? `?${qs}` : ""}`);
+  if (slug === RESULTS_SEG.en || slug === RESULTS_SEG.it) redirect(athletesPath(l));
   if (slug === COMPARE_SEG[l]) return <ComparePage l={l} sp={sp} />;
   if (slug === REMOVE_SEG[l]) return <RemovePage l={l} sp={sp} />;
   const d = await getAthlete(slug);
@@ -120,7 +133,7 @@ function ResultsTable({ rows, l, x }: { rows: AthResult[]; l: AthLang; x: Record
         <thead><tr><th>{x.date}</th><th>{x.race}</th><th>{x.ag}</th><th>{x.swim}</th><th>T1</th><th>{x.bike}</th><th>T2</th><th>{x.run}</th><th>{x.finish}</th><th>{x.overall}</th><th>{x.agRank}</th></tr></thead>
         <tbody>
           {rows.map((r) => {
-            const href = raceHref(r, l);
+            const href = editionById(r.edition_id) ? editionPath(l, r.edition_id) : raceHref(r, l);
             return (
               <tr key={r.edition_id}>
                 <td className="num">{fmtDate(r.race_date, l)}</td>
@@ -339,3 +352,106 @@ async function RemovePage({ l, sp }: { l: AthLang; sp: SP }) {
     </div>
   );
 }
+
+// ------------------------------------------------------------------ classifica di un'edizione
+type EdSP = { sex?: string; ag?: string; p?: string };
+const AG_ORDER = ["PRO", "18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80-84"];
+
+export async function editionMetadata(lang: string, seg0: string, id: string, sp: EdSP): Promise<Metadata> {
+  const l = athLang(lang), x = ATH[l], e = editionById(id);
+  if (!e || (seg0 !== RESULTS_SEG.en && seg0 !== RESULTS_SEG.it)) return { robots: { index: false } };
+  const v = { race: editionLabel(e), fin: e.fin.toLocaleString(LOCALE[l]) };
+  const title = fill(x.edTitle, v), desc = fill(x.edDesc, v);
+  const filtered = Boolean(sp.sex || sp.ag || (sp.p && sp.p !== "1"));
+  return { title: `${title} · 24/7 Coach`, description: desc, robots: filtered ? { index: false, follow: true } : undefined, alternates: { canonical: editionPath(l, id), languages: { en: editionPath("en", id), it: editionPath("it", id), "x-default": editionPath("en", id) } }, openGraph: { locale: OG_LOCALE[l], title, description: desc } };
+}
+
+export async function EditionPage({ lang, seg, seg0, id, sp }: { lang: string; seg: string; seg0: string; id: string; sp: EdSP }) {
+  const qs = new URLSearchParams(Object.entries(sp).filter(([, v]) => typeof v === "string") as [string, string][]).toString();
+  if (isLang(lang) && (seg0 === RESULTS_SEG.en || seg0 === RESULTS_SEG.it) && seg0 !== RESULTS_SEG[athLang(lang)]) redirect(`${editionPath(athLang(lang), id)}${qs ? `?${qs}` : ""}`);
+  const l = gate(lang, seg, `/${seg0}/${id}${qs ? `?${qs}` : ""}`);
+  const e = seg0 === RESULTS_SEG[l] ? editionById(id) : null;
+  if (!e) notFound();
+  const { t, x } = await shell(l);
+  const sex = sp.sex === "M" || sp.sex === "F" ? sp.sex : null;
+  const ag = sp.ag && /^[MF](PRO|\d\d-\d\d)$/.test(sp.ag) ? sp.ag : null;
+  const page = Math.max(1, Math.min(500, Number(sp.p) || 1));
+  const SIZE = 100;
+  const { rows, total } = await getEditionResults(e.id, { sex, ag, page: page - 1, size: SIZE });
+  const pages = Math.max(1, Math.ceil(total / SIZE));
+  const here = editionPath(l, e.id);
+  const link = (o: { sex?: string | null; ag?: string | null; p?: number }) => {
+    const q = new URLSearchParams();
+    if (o.ag) q.set("ag", o.ag); else if (o.sex) q.set("sex", o.sex);
+    if (o.p && o.p > 1) q.set("p", String(o.p));
+    const s2 = q.toString();
+    return `${here}${s2 ? `?${s2}` : ""}`;
+  };
+  const others = EDITIONS.filter((o) => o.key === e.key && o.id !== e.id);
+  const raceUrl = e.slug ? `${racesPath(l)}/${e.slug}` : null;
+  const n = (v: number) => v.toLocaleString(LOCALE[l]);
+  const agSex = ag ? ag[0] : sex;
+  return (
+    <div className="ld">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([orgLd(), breadcrumbLd([{ name: "24/7 Coach", url: `/${l}` }, { name: x.nav, url: athletesPath(l) }, { name: editionLabel(e), url: here }])]) }} />
+      <SiteNav lang={l} t={t} altPaths={alt((k) => editionPath(k, e.id))} />
+      <main>
+        <div className="ld-rhead ld-chead">
+          <div className="ld-wrap">
+            <p className="mono"><Link href={athletesPath(l)}>{x.nav}</Link> · {x.edKicker}</p>
+            <h1 style={{ marginTop: 8 }}>{e.name} <em>{e.y}</em></h1>
+            <p className="ld-lead">{fmtDate(e.date, l)} · {fill(x.edFound, { n: n(e.fin) })}</p>
+            <div className="ld-cta">
+              {raceUrl ? <Link className="btn btn-ghost" href={raceUrl}>{x.edRace} →</Link> : null}
+              {others.map((o) => <Link key={o.id} className="btn btn-ghost" href={editionPath(l, o.id)}>{editionLabel(o).replace(o.name, "").trim()}</Link>)}
+            </div>
+            <p className="lab" style={{ marginTop: 22 }}>{x.edSearch}</p>
+            <AthleteSearch base={athletesPath(l)} race={e.key} txt={{ ph: x.searchPh, none: x.none, typeMore: x.typeMore, race1: x.race1, raceN: x.raceN }} />
+          </div>
+        </div>
+        <section className="ld-sec">
+          <div className="ld-wrap">
+            <div className="ld-ed-filters">
+              <Link className={!sex && !ag ? "on" : ""} href={link({})}>{x.edAll}</Link>
+              <Link className={agSex === "M" && !ag ? "on" : ""} href={link({ sex: "M" })}>{x.edMen}</Link>
+              <Link className={agSex === "F" && !ag ? "on" : ""} href={link({ sex: "F" })}>{x.edWomen}</Link>
+            </div>
+            {agSex ? (
+              <div className="ld-ed-filters" aria-label={x.edAg}>
+                {AG_ORDER.map((a) => <Link key={a} className={ag === `${agSex}${a}` ? "on" : ""} href={link({ ag: `${agSex}${a}` })} rel="nofollow">{agSex}{a}</Link>)}
+              </div>
+            ) : null}
+            <p className="note" style={{ marginTop: 14 }}>{fill(x.edFound, { n: n(total) })}{pages > 1 ? ` · ${fill(x.edPage, { p: page, n: pages })}` : ""}</p>
+            <div className="ld-scroll" style={{ marginTop: 8 }}>
+              <table className="ld-edrank">
+                <thead><tr><th>{x.edPos}</th><th>{x.edName}</th><th>{x.ag}</th><th>{x.swim}</th><th>T1</th><th>{x.bike}</th><th>T2</th><th>{x.run}</th><th>{x.finish}</th></tr></thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={`${r.edition_id}-${r.bib}-${i}`}>
+                      <td className="num">{sex || ag ? (page - 1) * SIZE + i + 1 : r.rank_overall ?? (page - 1) * SIZE + i + 1}</td>
+                      <td>{r.slug ? <Link href={athletePath(l, r.slug)}>{flag(r.country)} {r.name}</Link> : <span className="note">{x.edAnon}</span>}</td>
+                      <td>{r.age_group ?? "–"}</td>
+                      <td className="num">{hms(r.swim)}</td><td className="num">{hms(r.t1)}</td><td className="num">{hms(r.bike)}</td><td className="num">{hms(r.t2)}</td><td className="num">{hms(r.run)}</td>
+                      <td className="num"><b>{hms(r.finish)}</b></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {pages > 1 ? (
+              <div className="ld-ed-pager">
+                {page > 1 ? <Link className="btn btn-ghost" href={link({ sex, ag, p: page - 1 })}>{x.edPrev}</Link> : <span />}
+                <span className="note">{fill(x.edPage, { p: page, n: pages })}</span>
+                {page < pages ? <Link className="btn btn-ghost" href={link({ sex, ag, p: page + 1 })}>{x.edNext}</Link> : <span />}
+              </div>
+            ) : null}
+            <p className="note" style={{ marginTop: 22 }}>{x.srcNote}</p>
+            <p className="note" style={{ marginTop: 8 }}>{x.privNote} <Link href={removePath(l)}>{x.privLink}</Link></p>
+          </div>
+        </section>
+      </main>
+      <SiteFooter t={t} lang={l} />
+    </div>
+  );
+}
+export type { Edition };

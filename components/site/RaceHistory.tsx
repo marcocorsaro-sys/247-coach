@@ -5,7 +5,7 @@ import { LOCALE } from "@/lib/i18n/config";
 import type { DictKey, T } from "@/lib/i18n";
 import Link from "next/link";
 import { hm, hms, raceStatsFor, type Leg } from "@/lib/site/raceStats";
-import { ATH, athLang, athletesPath } from "@/lib/site/athletes";
+import { ATH, athLang, athletesPath, editionPath, editionsForRace } from "@/lib/site/athletes";
 
 const LEGS: Leg[] = ["finish", "swim", "bike", "run"];
 const sign = (v: number, lang: Lang) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -39,6 +39,9 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
   const hist = last.hist;
   const max = hist ? Math.max(...hist.counts) : 0;
   const flagged = s.editions.filter((e) => e.flags.length);
+  const list = editionsForRace(slug);
+  const eds = new Map(list.map((e) => [e.date, e.id]));
+  const x = ATH[athLang(lang)];
   return (
     <section className="ld-sec" id="storico">
       <div className="ld-wrap">
@@ -58,7 +61,7 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
             <tbody>
               {s.editions.map((e) => (
                 <tr key={e.y}>
-                  <td className="num">{e.y}{e.flags.length ? " *" : ""}</td>
+                  <td className="num">{eds.get(e.date) ? <Link href={editionPath(lang, eds.get(e.date) as string)}>{e.y}</Link> : e.y}{e.flags.length ? " *" : ""}</td>
                   <td className="num">{n(e.st)}</td>
                   <td className="num">{n(e.fin)}</td>
                   <td className="num">{e.st ? `${Math.round((100 * e.dnf) / e.st)}%` : "–"}</td>
@@ -105,7 +108,10 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
             </div>
           </>
         ) : null}
-        <p style={{ marginTop: 22 }}><Link className="btn btn-ghost" href={athletesPath(lang)}>{ATH[athLang(lang)].hubH1a} →</Link></p>
+        <div className="ld-cta" style={{ marginTop: 22 }}>
+          {list.map((e) => <Link key={e.id} className="btn btn-ghost" href={editionPath(lang, e.id)}>{x.edSee} {e.y}{/-women$/.test(e.id) ? " · W" : /-men$/.test(e.id) ? " · M" : ""} →</Link>)}
+          <Link className="btn btn-ghost" href={`${athletesPath(lang)}${list[0] ? `?race=${list[0].key}` : ""}`}>{x.edSearch} →</Link>
+        </div>
         <p className="note" style={{ marginTop: 18 }}>{t("rs.source")}</p>
       </div>
     </section>

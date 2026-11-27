@@ -1,7 +1,9 @@
 // Home pubblica di 24/7 Coach per lingua: la gara in alto, il coach subito sotto,
 // poi i tre tempi (scegli, capisci, allenati), l'advisor e il calendario.
 import Link from "next/link";
-import { DEVICE_CHIPS, isAlpha, SiteFooter, SiteNav } from "./SiteShell";
+import { DEVICE_CHIPS, isAlpha, searchTxt, SiteFooter, SiteNav } from "./SiteShell";
+import SiteSearch from "./SiteSearch";
+import { athletesPath } from "@/lib/site/athletes";
 import RaceAdvisor from "./RaceAdvisor";
 import { RaceCard } from "./RaceCard";
 import { Thread } from "./CoachBits";
@@ -37,6 +39,7 @@ export default async function Landing({ races, lang }: { races: Race[]; lang: La
                 <a className="btn btn-primary btn-lg" href="#advisor">{t("hero.ctaFind")}</a>
                 <Link className="btn btn-ghost btn-lg" href={coachPath(lang)}>{t("hero.ctaSee")}</Link>
               </div>
+              <SiteSearch variant="hero" lang={lang} txt={searchTxt(lang)} athletesHref={athletesPath(lang)} />
             </div>
             <div className="ld-stats">
               <div className="ld-stat"><b className="num">{full.length}</b><span>{t("stat.full", { year })}</span></div>

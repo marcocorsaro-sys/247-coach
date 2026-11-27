@@ -470,3 +470,32 @@ html{scroll-padding-top:64px}
 .ld-ath-form label{display:flex;flex-direction:column;gap:6px;color:var(--text-2);font-size:.92rem}
 .ld-delta{font-size:.8rem;color:var(--text-3);white-space:nowrap}
 .ld-delta.up{color:#4fd18b}.ld-delta.down{color:var(--run)}
+
+/* ricerca unica (gare e atleti) */
+.ld-top{position:sticky}
+.ld-ss{display:inline-flex}
+.ld-ss-btn{display:inline-flex;align-items:center;gap:7px;background:none;border:1px solid var(--line-2);border-radius:2px;color:var(--text-2);font-family:var(--fd);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:.86rem;padding:8px 12px;cursor:pointer}
+.ld-ss-btn:hover,.ld-ss-btn[aria-expanded="true"]{color:var(--text);border-color:var(--lime)}
+.ld-ss:not(.hero) .ld-ss-panel{position:absolute;left:0;right:0;top:100%;z-index:60;background:var(--bg);border-bottom:1px solid var(--line-2);padding:16px max(16px,calc((100vw - 1120px)/2)) 20px;box-shadow:0 18px 40px rgba(0,0,0,.5);max-height:78vh;overflow:auto}
+.ld-ss.hero{display:block;margin-top:22px;max-width:620px}
+.ld-ss-panel input{width:100%;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:4px;color:var(--text);font:inherit;font-size:1.05rem}
+.ld-ss-panel input:focus{outline:2px solid var(--lime);outline-offset:1px}
+.ld-ss-res{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:18px;margin-top:14px}
+.ld-ss-res>div{min-width:0}
+.ld-ss-res ul{list-style:none;padding:0;margin:6px 0 0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.ld-ss-res li+li{border-top:1px solid var(--line)}
+.ld-ss-res li a{display:flex;flex-direction:column;gap:2px;padding:10px 14px;background:var(--bg-2);color:inherit;text-decoration:none}
+.ld-ss-res li a:hover{background:var(--s1)}
+.ld-ss-res li span{color:var(--text-2);font-size:.86rem}
+.ld-ss.hero .ld-ss-res{grid-template-columns:1fr}
+/* classifica di un'edizione */
+.ld-ed-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.ld-ed-filters a{font-family:var(--fd);font-weight:700;letter-spacing:.04em;font-size:.9rem;padding:6px 10px;border:1px solid var(--line-2);border-radius:2px;color:var(--text-2);text-decoration:none}
+.ld-ed-filters a.on{background:var(--lime);border-color:var(--lime);color:#0c0c0b}
+.ld-ed-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.ld-edrank td a{color:inherit}
+.ld-edrank td a:hover{color:var(--lime)}
+.ld-ss-panel input,.ld-ath-search input,.ld-ath-form input,.ld-ath-form textarea{box-sizing:border-box;max-width:100%}
+.ld-ss.hero{max-width:min(620px,100%)}
+.ld-hero .ld-wrap>*{min-width:0}
+.ld-ss.hero{overflow-x:clip;padding:3px;margin-left:-3px}

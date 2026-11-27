@@ -6,6 +6,7 @@
 // ============================================================================
 import type { Lang } from "@/lib/i18n/config";
 import { createPublicClient } from "@/lib/supabase/public";
+import editionsData from "./data/editions.json";
 
 export type AthLang = "en" | "it";
 export const athLang = (l: Lang | string): AthLang => (l === "it" ? "it" : "en");
@@ -17,6 +18,39 @@ export const comparePath = (l: Lang | string, slugs: string[], race?: string | n
 export const COMPARE_SEG: Record<AthLang, string> = { en: "compare", it: "confronto" };
 export const REMOVE_SEG: Record<AthLang, string> = { en: "remove", it: "rimozione" };
 export const removePath = (l: Lang | string, slug?: string) => `${athletesPath(l)}/${REMOVE_SEG[athLang(l)]}${slug ? `?slug=${encodeURIComponent(slug)}` : ""}`;
+
+export const RESULTS_SEG: Record<AthLang, string> = { en: "results", it: "risultati" };
+export const editionPath = (l: Lang | string, editionId: string) => `${athletesPath(l)}/${RESULTS_SEG[athLang(l)]}/${editionId}`;
+
+/** Edizioni di cui abbiamo la classifica (2024-2026), dalla più recente. */
+export type Edition = { id: string; key: string; slug: string | null; name: string; cat: "full" | "half"; y: number; date: string; fin: number; st: number };
+export const EDITIONS = editionsData as Edition[];
+const ED_BY_ID = new Map(EDITIONS.map((e) => [e.id, e]));
+export const editionById = (id: string): Edition | null => ED_BY_ID.get(id) ?? null;
+/** Edizioni di una gara del sito, dallo slug (con o senza anno). */
+export const editionsForRace = (slug: string): Edition[] => { const b = slug.replace(/-20\d\d$/, ""); return EDITIONS.filter((e) => e.slug === b); };
+export const editionLabel = (e: Edition) => `${e.name} ${e.y}${/-women$/.test(e.id) ? " · W" : /-men$/.test(e.id) ? " · M" : ""}`;
+
+export type RankRow = AthResult & { cid: string | null; name: string | null; slug: string | null; country: string | null };
+/** Classifica di un'edizione: arrivati in ordine di tempo, con filtri per sesso e categoria. */
+export async function getEditionResults(editionId: string, opts: { sex?: "M" | "F" | null; ag?: string | null; page?: number; size?: number } = {}): Promise<{ rows: RankRow[]; total: number }> {
+  const size = opts.size ?? 100, page = Math.max(0, opts.page ?? 0);
+  try {
+    const db = createPublicClient();
+    let q = db.from("ath_results").select(`cid,${R_COLS}`, { count: "exact" }).eq("edition_id", editionId).eq("status", "FIN").not("finish", "is", null);
+    if (opts.ag) q = q.eq("age_group", opts.ag);
+    else if (opts.sex) q = q.like("age_group", `${opts.sex}%`);
+    const { data, count } = await q.order("finish", { ascending: true }).range(page * size, page * size + size - 1);
+    const rows = (data ?? []) as (AthResult & { cid: string | null })[];
+    const cids = [...new Set(rows.map((r) => r.cid).filter((c): c is string => Boolean(c)))];
+    const names = new Map<string, { name: string; slug: string; country: string | null }>();
+    if (cids.length) {
+      const { data: a } = await db.from("ath_athletes").select("cid,name,slug,country").in("cid", cids);
+      for (const x of (a ?? []) as { cid: string; name: string; slug: string; country: string | null }[]) names.set(x.cid, x);
+    }
+    return { rows: rows.map((r) => ({ ...r, name: (r.cid && names.get(r.cid)?.name) || null, slug: (r.cid && names.get(r.cid)?.slug) || null, country: (r.cid && names.get(r.cid)?.country) || null })), total: count ?? rows.length };
+  } catch { return { rows: [], total: 0 }; }
+}
 
 export type Athlete = { cid: string; slug: string; name: string; country: string | null; sex: string | null; races: number; finishes: number; first_year: number | null; last_year: number | null; best_full: number | null; best_half: number | null };
 export type AthResult = {
@@ -86,6 +120,10 @@ export const ATH: Record<AthLang, Txt> = {
     rmTitle: "Remove an athlete page", rmH1: "Remove my page", rmLead: "Fill this in and the page is deleted straight away: your name is removed from our database and your results stay only as anonymous times in the race statistics.",
     rmSlug: "Address of the page to remove", rmEmail: "Your email (optional, only if you want a confirmation)", rmNote: "Anything you want to tell us (optional)", rmBtn: "Remove the page", rmDone: "Done: the page has been removed.", rmNotFound: "We couldn't find that page. Paste its full address.",
     privH: "What we publish, and why", privP: "Athlete pages show what race organisers publish in their official results: name, country, age group, times and placings. We add nothing else, we don't show contact details, and we don't build profiles for advertising. The legal basis is our legitimate interest in reporting public sports results. You can ask for removal at any time; it is immediate.",
+    edTitle: "{race}: full results, splits and rankings", edDesc: "{race} results: {fin} finishers with swim, bike and run splits, by gender and age group. Search any athlete and compare.",
+    edKicker: "Full results", edAll: "All", edMen: "Men", edWomen: "Women", edAg: "Age group", edFound: "{n} finishers", edPos: "#", edName: "Athlete", edPrev: "← Previous", edNext: "Next →", edPage: "Page {p} of {n}",
+    edSearch: "Find an athlete in this race", edOther: "Other editions", edRace: "Course, weather and race guide", edAnon: "Removed on request", edLatest: "Latest results", edSee: "Full results",
+    sAll: "Search races and athletes", sPh: "Race, city or athlete name", sRaces: "Races", sAthletes: "Athletes", sNone: "Nothing found.", sOpen: "Search", sAllAth: "All athletes →",
     dnf: "Did not finish", dns: "Did not start", dq: "Disqualified",
   },
   it: {
@@ -108,6 +146,10 @@ export const ATH: Record<AthLang, Txt> = {
     rmTitle: "Rimuovere una pagina atleta", rmH1: "Rimuovi la mia pagina", rmLead: "Compila il modulo e la pagina viene cancellata subito: il tuo nome sparisce dal nostro database e i tuoi risultati restano solo come tempi anonimi nelle statistiche di gara.",
     rmSlug: "Indirizzo della pagina da rimuovere", rmEmail: "La tua email (facoltativa, solo se vuoi una conferma)", rmNote: "Quello che vuoi dirci (facoltativo)", rmBtn: "Rimuovi la pagina", rmDone: "Fatto: la pagina è stata rimossa.", rmNotFound: "Non abbiamo trovato quella pagina. Incolla il suo indirizzo completo.",
     privH: "Cosa pubblichiamo, e perché", privP: "Le pagine atleta mostrano quello che gli organizzatori pubblicano nei risultati ufficiali: nome, paese, categoria, tempi e posizioni. Non aggiungiamo altro, non mostriamo contatti e non costruiamo profili a fini pubblicitari. La base giuridica è il nostro legittimo interesse a riportare risultati sportivi pubblici. Puoi chiedere la rimozione in qualsiasi momento: è immediata.",
+    edTitle: "{race}: classifica completa, frazioni e posizioni", edDesc: "Risultati {race}: {fin} arrivati con i tempi di nuoto, bici e corsa, per sesso e categoria. Cerca un atleta e confronta.",
+    edKicker: "Classifica completa", edAll: "Tutti", edMen: "Uomini", edWomen: "Donne", edAg: "Categoria", edFound: "{n} arrivati", edPos: "#", edName: "Atleta", edPrev: "← Precedente", edNext: "Successiva →", edPage: "Pagina {p} di {n}",
+    edSearch: "Cerca un atleta in questa gara", edOther: "Altre edizioni", edRace: "Percorso, meteo e guida alla gara", edAnon: "Rimosso su richiesta", edLatest: "Ultime classifiche", edSee: "Classifica completa",
+    sAll: "Cerca gare e atleti", sPh: "Gara, città o nome dell'atleta", sRaces: "Gare", sAthletes: "Atleti", sNone: "Nessun risultato.", sOpen: "Cerca", sAllAth: "Tutti gli atleti →",
     dnf: "Ritirato", dns: "Non partito", dq: "Squalificato",
   },
 };
