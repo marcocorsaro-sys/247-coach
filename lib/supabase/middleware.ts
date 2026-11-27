@@ -41,6 +41,7 @@ export async function updateSession(request: NextRequest) {
     (isAi && (path === "/" || path === "/gare" || path.startsWith("/gare/") || /^\/(en|it|de|fr|es|pt|nl|da|sv|no|fi|pl)(\/|$)/.test(path))) ||
     path === "/login" ||
     path === "/sitemap.xml" ||
+    path.startsWith("/athletes-sitemap/") ||
     path === "/robots.txt" ||
     path === "/registrati" ||
     path === "/privacy" ||

@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
   if (!IS_AI_APP) return { rules: { userAgent: "*", disallow: "/" } };
   return {
     rules: [{ userAgent: "*", allow: ["/", "/gare", "/gare/", "/en", "/it", "/de", "/fr", "/es", "/pt", "/nl", "/da", "/sv", "/no", "/fi", "/pl"], disallow: ["/atleta", "/coach", "/api/", "/onboarding", "/benvenuto", "/workout", "/login", "/registrati", "/auth"] }],
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: [`${base}/sitemap.xml`, `${base}/athletes-sitemap/index`],
   };
 }

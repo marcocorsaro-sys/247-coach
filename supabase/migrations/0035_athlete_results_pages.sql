@@ -1,0 +1,4 @@
+-- Pagine atleta (27/11/2026): ath_athletes (nome, paese, migliori tempi), ath_results (una riga per
+-- partecipazione, senza nome), ath_removals (richieste di rimozione), funzioni ath_search e ath_sitemap.
+-- Schema applicato dal pannello: vedi le migrazioni athlete_results_pages, athlete_search_function,
+-- athlete_sitemap_function nel progetto Supabase.

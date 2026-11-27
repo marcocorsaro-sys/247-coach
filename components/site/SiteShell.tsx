@@ -8,6 +8,7 @@ import LangSwitch from "./LangSwitch";
 import AppLink from "./AppLink";
 import GeoLangHint from "./GeoLangHint";
 import { COACH_PAGES, FOOT, PAGE_NAME, coachLang, coachPath } from "@/lib/site/coach";
+import { ATH, athletesPath } from "@/lib/site/athletes";
 
 export const ALPHA_UNTIL = "2026-12-31";
 export function isAlpha(): boolean {
@@ -54,6 +55,7 @@ export function SiteFooter({ t, lang = "en" }: { t: T; lang?: Lang }) {
           <b>{f.races}</b>
           <Link href={racesPath(lang)}>{f.all}</Link>
           <Link href={`${sitePath(lang)}#advisor`}>{f.find}</Link>
+          <Link href={athletesPath(lang)}>{ATH[l].nav}</Link>
           <Link href={magPath(lang)}>{f.mag}</Link>
         </div>
         <div>

@@ -3,7 +3,9 @@
 import type { Lang } from "@/lib/i18n/config";
 import { LOCALE } from "@/lib/i18n/config";
 import type { DictKey, T } from "@/lib/i18n";
+import Link from "next/link";
 import { hm, hms, raceStatsFor, type Leg } from "@/lib/site/raceStats";
+import { ATH, athLang, athletesPath } from "@/lib/site/athletes";
 
 const LEGS: Leg[] = ["finish", "swim", "bike", "run"];
 const sign = (v: number, lang: Lang) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -103,6 +105,7 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
             </div>
           </>
         ) : null}
+        <p style={{ marginTop: 22 }}><Link className="btn btn-ghost" href={athletesPath(lang)}>{ATH[athLang(lang)].hubH1a} →</Link></p>
         <p className="note" style={{ marginTop: 18 }}>{t("rs.source")}</p>
       </div>
     </section>
