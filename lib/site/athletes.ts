@@ -1,5 +1,5 @@
 // ============================================================================
-// Pagine atleta: risultati IRONMAN e 70.3 per atleta (edizioni 2024-2026),
+// Pagine atleta: risultati IRONMAN e 70.3 per atleta (edizioni 2022-2026),
 // ricerca per nome e confronti. Inglese e italiano; le altre lingue vanno
 // all'inglese. Il nome sta solo in ath_athletes: chi chiede la rimozione viene
 // cancellato da lì e i suoi risultati restano anonimi.
@@ -22,14 +22,16 @@ export const removePath = (l: Lang | string, slug?: string) => `${athletesPath(l
 export const RESULTS_SEG: Record<AthLang, string> = { en: "results", it: "risultati" };
 export const editionPath = (l: Lang | string, editionId: string) => `${athletesPath(l)}/${RESULTS_SEG[athLang(l)]}/${editionId}`;
 
-/** Edizioni di cui abbiamo la classifica (2024-2026), dalla più recente. */
+/** Edizioni di cui abbiamo la classifica (2022-2026), dalla più recente. */
 export type Edition = { id: string; key: string; slug: string | null; name: string; cat: "full" | "half"; y: number; date: string; fin: number; st: number };
 export const EDITIONS = editionsData as Edition[];
 const ED_BY_ID = new Map(EDITIONS.map((e) => [e.id, e]));
 export const editionById = (id: string): Edition | null => ED_BY_ID.get(id) ?? null;
 /** Edizioni di una gara del sito, dallo slug (con o senza anno). */
 export const editionsForRace = (slug: string): Edition[] => { const b = slug.replace(/-20\d\d$/, ""); return EDITIONS.filter((e) => e.slug === b); };
-export const editionLabel = (e: Edition) => `${e.name} ${e.y}${/-women$/.test(e.id) ? " · W" : /-men$/.test(e.id) ? " · M" : ""}`;
+/** Coda che distingue due edizioni dello stesso anno: donne/uomini, o il giorno (Kona 2022). */
+export const editionTag = (id: string) => (/-women$/.test(id) ? " · W" : /-men$/.test(id) ? " · M" : /-thursday$/.test(id) ? " · Thu" : /-saturday$/.test(id) ? " · Sat" : "");
+export const editionLabel = (e: Edition) => `${e.name} ${e.y}${editionTag(e.id)}`;
 
 export type RankRow = AthResult & { cid: string | null; name: string | null; slug: string | null; country: string | null };
 /** Classifica di un'edizione: arrivati in ordine di tempo, con filtri per sesso e categoria. */
@@ -102,7 +104,7 @@ type Txt = Record<string, string>;
 export const ATH: Record<AthLang, Txt> = {
   en: {
     nav: "Athletes", hubTitle: "IRONMAN and 70.3 athlete results: search by name", hubH1a: "Find an athlete.", hubH1b: "See every race.",
-    hubLead: "Search the IRONMAN and 70.3 results from 2024 to 2026 by name: every race, every split, and side-by-side comparisons.",
+    hubLead: "Search the IRONMAN and 70.3 results from 2022 to 2026 by name: every race, every split, and side-by-side comparisons.",
     searchPh: "Name and surname, at least 3 letters", searchBtn: "Search", none: "No athlete found with that name.", typeMore: "Type at least three letters.",
     inRace: "Only athletes who raced", results: "results", race1: "race", raceN: "races",
     athTitle: "{name}: IRONMAN and 70.3 results, times and splits", athDesc: "{name}{country}: {races} IRONMAN and 70.3 races from {y1} to {y2}, with swim, bike and run splits, rankings and comparisons.",
@@ -112,10 +114,10 @@ export const ATH: Record<AthLang, Txt> = {
     sameRace: "Same race, different years", sameLead: "How {name} did on the same course from one edition to the next. Differences are against the earlier year.",
     vs: "Compare with another athlete", vsLead: "Pick someone who raced the same event and see the gap leg by leg.",
     cmpTitle: "Compare IRONMAN athletes, leg by leg", cmpH1: "Compare athletes", cmpLead: "Side by side on the races they both did. Differences are against the first athlete.",
-    cmpAdd: "Add an athlete", cmpNone: "Choose at least two athletes to compare.", cmpNoCommon: "These athletes have no race in common between 2024 and 2026.", cmpCommon: "Races in common",
+    cmpAdd: "Add an athlete", cmpNone: "Choose at least two athletes to compare.", cmpNoCommon: "These athletes have no race in common between 2022 and 2026.", cmpCommon: "Races in common",
     diff: "Gap", remove: "remove",
     coachH: "Your next result starts with a plan.", coachP: "24/7 Coach builds your training around your race and the hours you really have, and puts each session on your watch.", coachCta: "Meet the coach",
-    srcNote: "Times are the official results of each race, editions 2024 to 2026. A result that is missing or wrong here is missing or wrong in the published results.",
+    srcNote: "Times are the official results of each race, editions 2022 to 2026. A result that is missing or wrong here is missing or wrong in the published results.",
     privNote: "Is this you and you don't want this page? You can have it removed.", privLink: "Remove my page",
     rmTitle: "Remove an athlete page", rmH1: "Remove my page", rmLead: "Fill this in and the page is deleted straight away: your name is removed from our database and your results stay only as anonymous times in the race statistics.",
     rmSlug: "Address of the page to remove", rmEmail: "Your email (optional, only if you want a confirmation)", rmNote: "Anything you want to tell us (optional)", rmBtn: "Remove the page", rmDone: "Done: the page has been removed.", rmNotFound: "We couldn't find that page. Paste its full address.",
@@ -128,7 +130,7 @@ export const ATH: Record<AthLang, Txt> = {
   },
   it: {
     nav: "Atleti", hubTitle: "Risultati degli atleti IRONMAN e 70.3: cerca per nome", hubH1a: "Cerca un atleta.", hubH1b: "Guarda tutte le sue gare.",
-    hubLead: "Cerca per nome nei risultati IRONMAN e 70.3 dal 2024 al 2026: ogni gara, ogni frazione, e i confronti fianco a fianco.",
+    hubLead: "Cerca per nome nei risultati IRONMAN e 70.3 dal 2022 al 2026: ogni gara, ogni frazione, e i confronti fianco a fianco.",
     searchPh: "Nome e cognome, almeno 3 lettere", searchBtn: "Cerca", none: "Nessun atleta trovato con questo nome.", typeMore: "Scrivi almeno tre lettere.",
     inRace: "Solo atleti che hanno corso", results: "risultati", race1: "gara", raceN: "gare",
     athTitle: "{name}: risultati IRONMAN e 70.3, tempi e frazioni", athDesc: "{name}{country}: {races} gare IRONMAN e 70.3 dal {y1} al {y2}, con tempi di nuoto, bici e corsa, posizioni e confronti.",
@@ -138,10 +140,10 @@ export const ATH: Record<AthLang, Txt> = {
     sameRace: "Stessa gara, anni diversi", sameLead: "Come è andato {name} sullo stesso percorso da un'edizione all'altra. Le differenze sono rispetto all'anno precedente.",
     vs: "Confronta con un altro atleta", vsLead: "Scegli qualcuno che ha corso la stessa gara e guarda il distacco frazione per frazione.",
     cmpTitle: "Confronta gli atleti IRONMAN, frazione per frazione", cmpH1: "Confronta gli atleti", cmpLead: "Fianco a fianco sulle gare che hanno corso entrambi. Le differenze sono rispetto al primo atleta.",
-    cmpAdd: "Aggiungi un atleta", cmpNone: "Scegli almeno due atleti da confrontare.", cmpNoCommon: "Questi atleti non hanno gare in comune tra il 2024 e il 2026.", cmpCommon: "Gare in comune",
+    cmpAdd: "Aggiungi un atleta", cmpNone: "Scegli almeno due atleti da confrontare.", cmpNoCommon: "Questi atleti non hanno gare in comune tra il 2022 e il 2026.", cmpCommon: "Gare in comune",
     diff: "Distacco", remove: "togli",
     coachH: "Il prossimo risultato comincia da un piano.", coachP: "24/7 Coach costruisce l'allenamento sulla tua gara e sulle ore che hai davvero, e mette ogni seduta sull'orologio.", coachCta: "Scopri il coach",
-    srcNote: "I tempi sono i risultati ufficiali di ogni gara, edizioni dal 2024 al 2026. Un risultato che qui manca o è sbagliato manca o è sbagliato nei risultati pubblicati.",
+    srcNote: "I tempi sono i risultati ufficiali di ogni gara, edizioni dal 2022 al 2026. Un risultato che qui manca o è sbagliato manca o è sbagliato nei risultati pubblicati.",
     privNote: "Sei tu e non vuoi questa pagina? Puoi farla rimuovere.", privLink: "Rimuovi la mia pagina",
     rmTitle: "Rimuovere una pagina atleta", rmH1: "Rimuovi la mia pagina", rmLead: "Compila il modulo e la pagina viene cancellata subito: il tuo nome sparisce dal nostro database e i tuoi risultati restano solo come tempi anonimi nelle statistiche di gara.",
     rmSlug: "Indirizzo della pagina da rimuovere", rmEmail: "La tua email (facoltativa, solo se vuoi una conferma)", rmNote: "Quello che vuoi dirci (facoltativo)", rmBtn: "Rimuovi la pagina", rmDone: "Fatto: la pagina è stata rimossa.", rmNotFound: "Non abbiamo trovato quella pagina. Incolla il suo indirizzo completo.",

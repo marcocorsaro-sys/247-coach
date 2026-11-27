@@ -1,11 +1,11 @@
-// Statistiche storiche della gara (2024-2026): indice di difficoltà, andamento
+// Statistiche storiche della gara (2022-2026): indice di difficoltà, andamento
 // delle edizioni, mediane per categoria e distribuzione dei tempi dell'ultima.
 import type { Lang } from "@/lib/i18n/config";
 import { LOCALE } from "@/lib/i18n/config";
 import type { DictKey, T } from "@/lib/i18n";
 import Link from "next/link";
-import { hm, hms, raceStatsFor, type Leg } from "@/lib/site/raceStats";
-import { ATH, athLang, athletesPath, editionPath, editionsForRace } from "@/lib/site/athletes";
+import { hm, hms, raceStatsFor, STATS_YEARS, type Leg } from "@/lib/site/raceStats";
+import { ATH, athLang, athletesPath, editionPath, editionsForRace, editionTag } from "@/lib/site/athletes";
 
 const LEGS: Leg[] = ["finish", "swim", "bike", "run"];
 const sign = (v: number, lang: Lang) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toLocaleString(LOCALE[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
@@ -25,7 +25,7 @@ export function RaceDifficulty({ slug, lang, t }: { slug: string; lang: Lang; t:
           </div>
         )))}
       </div>
-      <p className="note">{t("rs.diffNote", { n: n(s.n_cross), dist: t(s.cat === "full" ? "rs.full" : "rs.half") })}</p>
+      <p className="note">{t("rs.diffNote", { ...STATS_YEARS, n: n(s.n_cross), dist: t(s.cat === "full" ? "rs.full" : "rs.half") })}</p>
     </div>
   );
 }
@@ -42,10 +42,12 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
   const list = editionsForRace(slug);
   const eds = new Map(list.map((e) => [e.date, e.id]));
   const x = ATH[athLang(lang)];
+  // due edizioni nello stesso anno (Kona 2022, giovedì e sabato): accanto all'anno va il giorno
+  const yl = (e: { y: number; date: string }) => (s.editions.filter((o) => o.y === e.y).length > 1 ? `${e.y} · ${new Date(`${e.date}T12:00:00Z`).toLocaleDateString(LOCALE[lang], { day: "numeric", month: "short", timeZone: "UTC" })}` : String(e.y));
   return (
     <section className="ld-sec" id="storico">
       <div className="ld-wrap">
-        <div className="ld-sechead"><h2>{t("rs.h")}</h2><p>{t("rs.lead")}</p></div>
+        <div className="ld-sechead"><h2>{t("rs.h")}</h2><p>{t("rs.lead", { from: s.editions[s.editions.length - 1].y, to: last.y })}</p></div>
 
         {s.diff.finish != null ? (
           <>
@@ -60,8 +62,8 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
             <thead><tr><th>{t("rs.year")}</th><th>{t("rs.starters")}</th><th>{t("rs.finishers")}</th><th>{t("rs.dnf")}</th><th>{t("rs.medFinish")}</th><th>{t("rs.leg.swim")}</th><th>{t("rs.leg.bike")}</th><th>{t("rs.leg.run")}</th><th>{t("rs.winM")}</th><th>{t("rs.winF")}</th></tr></thead>
             <tbody>
               {s.editions.map((e) => (
-                <tr key={e.y}>
-                  <td className="num">{eds.get(e.date) ? <Link href={editionPath(lang, eds.get(e.date) as string)}>{e.y}</Link> : e.y}{e.flags.length ? " *" : ""}</td>
+                <tr key={e.date}>
+                  <td className="num">{eds.get(e.date) ? <Link href={editionPath(lang, eds.get(e.date) as string)}>{yl(e)}</Link> : yl(e)}{e.flags.length ? " *" : ""}</td>
                   <td className="num">{n(e.st)}</td>
                   <td className="num">{n(e.fin)}</td>
                   <td className="num">{e.st ? `${Math.round((100 * e.dnf) / e.st)}%` : "–"}</td>
@@ -109,10 +111,10 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
           </>
         ) : null}
         <div className="ld-cta" style={{ marginTop: 22 }}>
-          {list.map((e) => <Link key={e.id} className="btn btn-ghost" href={editionPath(lang, e.id)}>{x.edSee} {e.y}{/-women$/.test(e.id) ? " · W" : /-men$/.test(e.id) ? " · M" : ""} →</Link>)}
+          {list.map((e) => <Link key={e.id} className="btn btn-ghost" href={editionPath(lang, e.id)}>{x.edSee} {e.y}{editionTag(e.id)} →</Link>)}
           <Link className="btn btn-ghost" href={`${athletesPath(lang)}${list[0] ? `?race=${list[0].key}` : ""}`}>{x.edSearch} →</Link>
         </div>
-        <p className="note" style={{ marginTop: 18 }}>{t("rs.source")}</p>
+        <p className="note" style={{ marginTop: 18 }}>{t("rs.source", STATS_YEARS)}</p>
       </div>
     </section>
   );

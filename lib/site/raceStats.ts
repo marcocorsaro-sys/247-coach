@@ -1,5 +1,5 @@
 // ============================================================================
-// Statistiche storiche per gara (edizioni 2024-2026): partiti, arrivati, mediane
+// Statistiche storiche per gara (edizioni 2022-2026): partiti, arrivati, mediane
 // per frazione e per categoria, distribuzione dei tempi e indice di difficoltà
 // (quanto la gara è più lenta o più veloce della media, calcolato sugli stessi
 // atleti in gare diverse). Solo dati aggregati: nessun nome, nessuna riga atleta.
@@ -23,7 +23,10 @@ export type EditionStats = {
 };
 export type RaceStats = { cat: "full" | "half"; editions: EditionStats[]; diff: Partial<Record<Leg, number>>; n_cross: number };
 
-const RACES = (data as unknown as { races: Record<string, RaceStats> }).races;
+const DATA = data as unknown as { years: number[]; races: Record<string, RaceStats> };
+const RACES = DATA.races;
+/** Primo e ultimo anno coperti dall'archivio. */
+export const STATS_YEARS = { from: Math.min(...DATA.years), to: Math.max(...DATA.years) };
 
 /** Statistiche di una gara dal suo slug (con o senza anno finale). */
 export function raceStatsFor(slug: string): RaceStats | null {
