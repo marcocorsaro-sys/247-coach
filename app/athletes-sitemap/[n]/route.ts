@@ -14,14 +14,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ n: stri
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://247coachai.com";
   const db = createPublicClient();
   if (n === "index") {
-    const { count } = await db.from("ath_athletes").select("cid", { count: "exact", head: true });
-    const pages = Math.ceil((count ?? 0) / SIZE);
+    // conteggio stimato: quello esatto su 400 mila righe supera il tempo concesso alle letture pubbliche
+    const { count } = await db.from("ath_athletes").select("cid", { count: "estimated", head: true });
+    const pages = Math.max(1, Math.ceil(((count ?? 0) * 1.02) / SIZE));
     return xml(`<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${Array.from({ length: pages }, (_, i) => `<sitemap><loc>${base}/athletes-sitemap/${i}</loc></sitemap>`).join("\n")}\n</sitemapindex>`);
   }
   if (!/^\d{1,3}$/.test(n)) return new Response("not found", { status: 404 });
   const { data } = await db.rpc("ath_sitemap", { page: Number(n), size: SIZE });
   const slugs = (data ?? []) as string[];
-  if (!slugs.length) return new Response("not found", { status: 404 });
+  if (!slugs.length) return xml(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`);
   const urls = slugs.flatMap((s) => [`<url><loc>${base}${athletePath("en", s)}</loc></url>`, `<url><loc>${base}${athletePath("it", s)}</loc></url>`]);
   return xml(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
 }
