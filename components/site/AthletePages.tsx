@@ -54,7 +54,7 @@ export async function HubPage({ lang, seg, race }: { lang: string; seg: string; 
       <main>
         <div className="ld-rhead ld-chead">
           <div className="ld-wrap">
-            <p className="mono">{x.nav} · 2022–2026</p>
+            <p className="mono">{x.nav} · 2017–2026</p>
             <h1 style={{ marginTop: 8 }}>{x.hubH1a} <em>{x.hubH1b}</em></h1>
             <p className="ld-lead">{x.hubLead}</p>
             {raceKey ? <p className="note">{x.inRace}: {raceKey}</p> : null}

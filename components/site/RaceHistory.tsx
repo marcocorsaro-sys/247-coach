@@ -1,10 +1,10 @@
-// Statistiche storiche della gara (2022-2026): indice di difficoltà, andamento
+// Statistiche storiche della gara (2017-2026): indice di difficoltà, andamento
 // delle edizioni, mediane per categoria e distribuzione dei tempi dell'ultima.
 import type { Lang } from "@/lib/i18n/config";
 import { LOCALE } from "@/lib/i18n/config";
 import type { DictKey, T } from "@/lib/i18n";
 import Link from "next/link";
-import { hm, hms, raceStatsFor, STATS_YEARS, type Leg } from "@/lib/site/raceStats";
+import { hm, hms, raceStatsFor, statsYears, type Leg } from "@/lib/site/raceStats";
 import { ATH, athLang, athletesPath, editionPath, editionsForRace, editionTag } from "@/lib/site/athletes";
 
 const LEGS: Leg[] = ["finish", "swim", "bike", "run"];
@@ -25,7 +25,7 @@ export function RaceDifficulty({ slug, lang, t }: { slug: string; lang: Lang; t:
           </div>
         )))}
       </div>
-      <p className="note">{t("rs.diffNote", { ...STATS_YEARS, n: n(s.n_cross), dist: t(s.cat === "full" ? "rs.full" : "rs.half") })}</p>
+      <p className="note">{t("rs.diffNote", { ...statsYears(s.cat), n: n(s.n_cross), dist: t(s.cat === "full" ? "rs.full" : "rs.half") })}</p>
     </div>
   );
 }
@@ -64,9 +64,9 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
               {s.editions.map((e) => (
                 <tr key={e.date}>
                   <td className="num">{eds.get(e.date) ? <Link href={editionPath(lang, eds.get(e.date) as string)}>{yl(e)}</Link> : yl(e)}{e.flags.length ? " *" : ""}</td>
-                  <td className="num">{n(e.st)}</td>
+                  <td className="num">{e.st == null ? "–" : n(e.st)}</td>
                   <td className="num">{n(e.fin)}</td>
-                  <td className="num">{e.st ? `${Math.round((100 * e.dnf) / e.st)}%` : "–"}</td>
+                  <td className="num">{e.st && e.dnf != null ? `${Math.round((100 * e.dnf) / e.st)}%` : "–"}</td>
                   <td className="num"><b>{hms(e.med.finish)}</b></td>
                   <td className="num">{hms(e.med.swim)}</td>
                   <td className="num">{hms(e.med.bike)}</td>
@@ -114,7 +114,7 @@ export default function RaceHistory({ slug, lang, t }: { slug: string; lang: Lan
           {list.map((e) => <Link key={e.id} className="btn btn-ghost" href={editionPath(lang, e.id)}>{x.edSee} {e.y}{editionTag(e.id)} →</Link>)}
           <Link className="btn btn-ghost" href={`${athletesPath(lang)}${list[0] ? `?race=${list[0].key}` : ""}`}>{x.edSearch} →</Link>
         </div>
-        <p className="note" style={{ marginTop: 18 }}>{t("rs.source", STATS_YEARS)}</p>
+        <p className="note" style={{ marginTop: 18 }}>{t("rs.source", statsYears(s.cat))}</p>
       </div>
     </section>
   );
