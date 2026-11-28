@@ -5,6 +5,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { athLang, removePath } from "@/lib/site/athletes";
+import { claimPath } from "@/lib/site/career";
 
 export async function removeAthlete(form: FormData) {
   const l = athLang(String(form.get("lang") ?? "en"));
@@ -25,4 +26,25 @@ export async function removeAthlete(form: FormData) {
     }
   }
   redirect(`${removePath(l)}${ok ? "?done=1" : "?err=1"}`);
+}
+
+/** Richiesta di unire profili o correggere un risultato: finisce in coda, la verifica è a mano. */
+export async function claimAthlete(form: FormData) {
+  const l = athLang(String(form.get("lang") ?? "en"));
+  const raw = String(form.get("slug") ?? "").trim().toLowerCase();
+  const slug = (raw.split(/[?#]/)[0].split("/").filter(Boolean).pop() ?? "").replace(/[^a-z0-9-]/g, "");
+  const email = String(form.get("email") ?? "").trim().slice(0, 200);
+  const other = String(form.get("other") ?? "").trim().slice(0, 2000) || null;
+  const note = String(form.get("note") ?? "").trim().slice(0, 2000) || null;
+  let ok = false;
+  if (slug.length >= 8 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) && !String(form.get("website") ?? "")) {
+    const admin = createAdminClient();
+    const { data: a } = await admin.from("ath_athletes").select("cid,slug,name").eq("slug", slug).maybeSingle();
+    if (a) {
+      const row = a as { cid: string; slug: string; name: string };
+      const { error } = await admin.from("ath_claims").insert({ cid: row.cid, slug: row.slug, name: row.name, email, other, note, lang: l });
+      ok = !error;
+    }
+  }
+  redirect(`${claimPath(l)}${ok ? "?done=1" : `?err=1${slug ? `&slug=${encodeURIComponent(slug)}` : ""}`}`);
 }

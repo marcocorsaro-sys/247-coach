@@ -499,3 +499,33 @@ html{scroll-padding-top:64px}
 .ld-ss.hero{max-width:min(620px,100%)}
 .ld-hero .ld-wrap>*{min-width:0}
 .ld-ss.hero{overflow-x:clip;padding:3px;margin-left:-3px}
+/* carriera atleta: riassunto, andamento, rispetto al gruppo, convertitore */
+.ld-car-sum{max-width:860px;margin-top:14px}
+.ld-car-fig{margin:22px 0 0}
+.ld-car-fig figcaption{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;margin-bottom:8px}
+.ld-car-fig figcaption b{font-family:var(--fd);font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+.ld-car-leg{display:inline-flex;align-items:center;gap:8px;color:var(--text-2);font-size:.9rem}
+.ld-car-leg i{display:inline-block;width:26px;height:0;border-top:3px solid var(--text)}
+.ld-car-leg i.adj{border-top:3px dashed var(--lime)}
+.ld-car-svg{width:100%;min-width:560px;height:auto;background:var(--bg-2);border:1px solid var(--line);border-radius:4px}
+.ld-car-svg .grid{stroke:var(--line);stroke-width:1}
+.ld-car-svg .ax{fill:var(--text-2);font-size:12px;font-family:var(--fd);letter-spacing:.04em}
+.ld-car-svg .val{fill:var(--text);font-size:12px;font-weight:700}
+.ld-car-svg path{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.ld-car-svg path.real{stroke:var(--text);stroke-width:2.5}
+.ld-car-svg path.adj{stroke:var(--lime);stroke-width:2.5;stroke-dasharray:7 6}
+.ld-car-svg .dot{fill:var(--text);stroke:var(--bg-2);stroke-width:2}
+.ld-car-svg .adjdot{fill:var(--lime)}
+.ld-car-field td{vertical-align:middle}
+.ld-car-bar{display:flex;align-items:center;gap:8px;min-width:120px}
+.ld-car-bar i{display:block;height:8px;border-radius:2px;background:var(--text-2);flex:0 0 auto;max-width:calc(100% - 46px)}
+.ld-car-bar.swim i{background:var(--swim)}.ld-car-bar.bike i{background:var(--bike)}.ld-car-bar.run i{background:var(--run)}.ld-car-bar.finish i{background:var(--text)}
+.ld-car-bar b{font-weight:700;font-size:.9rem}
+.ld-eq-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;max-width:760px}
+.ld-eq-form label{display:flex;flex-direction:column;gap:6px;color:var(--text-2);font-size:.92rem;min-width:0}
+.ld-eq-form select,.ld-eq-form input{width:100%;box-sizing:border-box;padding:14px 16px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:4px;color:var(--text);font:inherit;font-size:1.05rem}
+.ld-eq-form select:focus,.ld-eq-form input:focus{outline:2px solid var(--lime);outline-offset:1px}
+.ld-eq-form input[aria-invalid="true"]{border-color:var(--lime)}
+.ld-eq-table tr.me td{background:var(--s1)}
+.ld-eq-table td a{color:inherit}
+@media (max-width:640px){.ld-eq-form{grid-template-columns:minmax(0,1fr)}}

@@ -40,3 +40,5 @@ export function hms(s: number | null | undefined): string {
   return `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}`;
 }
 export const hm = (s: number | null | undefined): string => (s == null ? "–" : `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`);
+/** Tutte le gare con statistiche, per slug senza anno. */
+export const allRaceStats = (): [string, RaceStats][] => Object.entries(RACES);
