@@ -75,6 +75,29 @@ export async function getAthlete(slug: string): Promise<{ athlete: Athlete; resu
   } catch { return null; }
 }
 
+/** Indirizzo nuovo di un profilo unito a un altro, se c'è. */
+export async function athleteRedirect(slug: string): Promise<string | null> {
+  try {
+    const { data } = await createPublicClient().from("ath_redirects").select("to_slug").eq("slug", slug).maybeSingle();
+    return (data as { to_slug: string } | null)?.to_slug ?? null;
+  } catch { return null; }
+}
+
+export type RankMetric = "full" | "half" | "finishes";
+export type RankHit = { slug: string; name: string; country: string | null; sex: string | null; finishes: number; rank_full: number | null; rank_half: number | null };
+/** Classifica degli atleti: miglior tempo su percorso completo (full o 70.3) o numero di gare finite. */
+export async function getRanking(o: { metric: RankMetric; country?: string | null; sex?: "M" | "F" | null; limit?: number }): Promise<RankHit[]> {
+  try {
+    let q = createPublicClient().from("ath_athletes").select("slug,name,country,sex,finishes,rank_full,rank_half");
+    if (o.country) q = q.eq("country", o.country);
+    if (o.sex) q = q.eq("sex", o.sex);
+    if (o.metric === "finishes") q = q.gt("finishes", 0).order("finishes", { ascending: false }).order("slug");
+    else { const col = o.metric === "full" ? "rank_full" : "rank_half"; q = q.not(col, "is", null).order(col, { ascending: true }); }
+    const { data } = await q.limit(Math.min(200, o.limit ?? 100));
+    return (data ?? []) as RankHit[];
+  } catch { return []; }
+}
+
 export async function searchAthletes(q: string, race?: string | null, limit = 20): Promise<Hit[]> {
   const norm = q.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   if (norm.length < 3) return [];

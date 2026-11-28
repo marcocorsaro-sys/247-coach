@@ -13,12 +13,12 @@ import { coachPath } from "@/lib/site/coach";
 import { claimAthlete, removeAthlete } from "@/lib/site/athleteActions";
 import { athleteLd, CareerChart, careerSummary, FieldTable } from "@/components/site/AthleteCareer";
 import RaceEquivalent, { type EqRace } from "@/components/site/RaceEquivalent";
-import { CAR, CLAIM_SEG, EQUIV_SEG, careerRows, claimPath, edStats, equivPath } from "@/lib/site/career";
+import { CAR, CLAIM_SEG, EQUIV_SEG, RANK_COUNTRIES, RANK_SEG, careerRows, claimPath, edStats, equivPath, rankPath } from "@/lib/site/career";
 import { allRaceStats } from "@/lib/site/raceStats";
 import { SITE, ORG_ID } from "@/lib/site/jsonld";
 import {
-  ATH, COMPARE_SEG, EDITIONS, REMOVE_SEG, RESULTS_SEG, athLang, athletePath, athletesPath, comparePath, delta, editionById, editionLabel, editionPath, fill, flag, getAthlete, getEditionResults, hms, raceLabel, removePath,
-  type AthLang, type AthResult, type Athlete, type Edition,
+  ATH, COMPARE_SEG, EDITIONS, REMOVE_SEG, RESULTS_SEG, athLang, athletePath, athleteRedirect, athletesPath, comparePath, getRanking, delta, editionById, editionLabel, editionPath, fill, flag, getAthlete, getEditionResults, hms, raceLabel, removePath,
+  type AthLang, type AthResult, type Athlete, type Edition, type RankMetric,
 } from "@/lib/site/athletes";
 
 const SEG: Record<AthLang, string> = { en: "athletes", it: "atleti" };
@@ -67,8 +67,9 @@ export async function HubPage({ lang, seg, race }: { lang: string; seg: string; 
           </div>
         </div>
         <section className="ld-sec">
-          <div className="ld-wrap ld-grid ld-g3">
+          <div className="ld-wrap ld-grid ld-g2">
             <Link className="ld-card ld-clink" href={equivPath(l)}><b>{CAR[l].eqH1a} {CAR[l].eqH1b} →</b><span>{CAR[l].eqTableLead}</span></Link>
+            <Link className="ld-card ld-clink" href={rankPath(l)}><b>{CAR[l].rkLink} →</b><span>{CAR[l].rkLead}</span></Link>
             <Link className="ld-card ld-clink" href={comparePath(l, [])}><b>{x.cmpH1} →</b><span>{x.cmpLead}</span></Link>
             <Link className="ld-card ld-clink" href={racesPath(l)}><b>{t("nav.races")} →</b><span>{t("rs.lead")}</span></Link>
           </div>
@@ -100,12 +101,16 @@ export async function HubPage({ lang, seg, race }: { lang: string; seg: string; 
 }
 
 // ------------------------------------------------------------------ scheda atleta, confronto, rimozione
-type SP = { a?: string; race?: string; slug?: string; done?: string; err?: string; from?: string; t?: string };
+type SP = { a?: string; race?: string; slug?: string; done?: string; err?: string; from?: string; t?: string; c?: string; sex?: string; m?: string };
+const rankArgs = (sp: SP) => ({ c: sp.c && /^[A-Z]{2}$/.test(sp.c) ? sp.c : null, sex: sp.sex === "M" || sp.sex === "F" ? (sp.sex as "M" | "F") : null, m: (sp.m === "half" || sp.m === "finishes" ? sp.m : "full") as RankMetric });
+const countryName = (cc: string, l: AthLang) => { try { return new Intl.DisplayNames([LOCALE[l]], { type: "region" }).of(cc) ?? cc; } catch { return cc; } };
+const rankPlace = (c: string | null, l: AthLang) => (c ? fill(CAR[l].rkIn, { country: countryName(c, l) }) : CAR[l].rkWorld);
 
-export async function slugMetadata(lang: string, slug: string): Promise<Metadata> {
+export async function slugMetadata(lang: string, slug: string, sp: SP = {}): Promise<Metadata> {
   const l = athLang(lang), x = ATH[l];
   if (slug === COMPARE_SEG[l]) return { title: `${x.cmpTitle} · 24/7 Coach`, description: x.cmpLead, robots: { index: false, follow: true } };
   if (slug === REMOVE_SEG[l]) return { title: `${x.rmTitle} · 24/7 Coach`, robots: { index: false, follow: false } };
+  if (slug === RANK_SEG[l]) { const c = CAR[l], r = rankArgs(sp); const title = fill(c.rkTitle, { place: r.c ? ` ${rankPlace(r.c, l)}` : "" }); const can = (k: string) => rankPath(k, { c: r.c, m: r.m }); return { title: `${title} · 24/7 Coach`, description: c.rkLead, robots: r.sex ? { index: false, follow: true } : undefined, alternates: { canonical: can(l), languages: { en: can("en"), it: can("it"), "x-default": can("en") } }, openGraph: { locale: OG_LOCALE[l], title, description: c.rkLead } }; }
   if (slug === CLAIM_SEG[l]) return { title: `${CAR[l].clTitle} · 24/7 Coach`, robots: { index: false, follow: false } };
   if (slug === EQUIV_SEG[l]) { const c = CAR[l]; const d0 = fill(c.eqLead, { n: eqCount().toLocaleString(LOCALE[l]) }); return { title: `${c.eqTitle} · 24/7 Coach`, description: d0, alternates: { canonical: equivPath(l), languages: { en: equivPath("en"), it: equivPath("it"), "x-default": equivPath("en") } }, openGraph: { locale: OG_LOCALE[l], title: c.eqTitle, description: d0 } }; }
   const d = await getAthlete(slug);
@@ -128,6 +133,7 @@ export async function SlugPage({ lang, seg, slug, sp }: { lang: string; seg: str
     if (slug === REMOVE_SEG[other]) redirect(`${athletesPath(l0)}/${REMOVE_SEG[l0]}${qs ? `?${qs}` : ""}`);
     if (slug === CLAIM_SEG[other]) redirect(`${claimPath(l0)}${qs ? `?${qs}` : ""}`);
     if (slug === EQUIV_SEG[other]) redirect(`${equivPath(l0)}${qs ? `?${qs}` : ""}`);
+    if (slug === RANK_SEG[other]) redirect(`${athletesPath(l0)}/${RANK_SEG[l0]}${qs ? `?${qs}` : ""}`);
   }
   const l = gate(lang, seg, `/${slug}${qs ? `?${qs}` : ""}`);
   if (slug === RESULTS_SEG.en || slug === RESULTS_SEG.it) redirect(athletesPath(l));
@@ -135,8 +141,9 @@ export async function SlugPage({ lang, seg, slug, sp }: { lang: string; seg: str
   if (slug === REMOVE_SEG[l]) return <RemovePage l={l} sp={sp} />;
   if (slug === CLAIM_SEG[l]) return <ClaimPage l={l} sp={sp} />;
   if (slug === EQUIV_SEG[l]) return <EquivPage l={l} sp={sp} />;
+  if (slug === RANK_SEG[l]) return <RankPage l={l} sp={sp} />;
   const d = await getAthlete(slug);
-  if (!d) notFound();
+  if (!d) { const to = await athleteRedirect(slug); if (to) redirect(athletePath(l, to)); notFound(); }
   return <AthletePage l={l} a={d.athlete} results={d.results} />;
 }
 
@@ -464,6 +471,71 @@ async function EquivPage({ l, sp }: { l: AthLang; sp: SP }) {
               <div><p className="mono">24/7 Coach</p><h2>{x.coachH}</h2><p>{x.coachP}</p></div>
               <div className="ld-bridge-cta"><Link className="btn btn-primary btn-lg" href={coachPath(l)}>{x.coachCta}</Link></div>
             </div>
+          </div>
+        </section>
+      </main>
+      <SiteFooter t={t} lang={l} />
+    </div>
+  );
+}
+
+async function RankPage({ l, sp }: { l: AthLang; sp: SP }) {
+  const { t, x } = await shell(l);
+  const c = CAR[l], r = rankArgs(sp);
+  const rows = await getRanking({ metric: r.m, country: r.c, sex: r.sex, limit: 100 });
+  const place = rankPlace(r.c, l);
+  const here = rankPath(l, { c: r.c, m: r.m });
+  const ld = { "@context": "https://schema.org", "@type": "ItemList", "@id": `${SITE}${here}#ranking`, name: `${c.rkH1a} ${place}`, numberOfItems: rows.length, itemListOrder: "https://schema.org/ItemListOrderAscending",
+    itemListElement: rows.slice(0, 50).map((a, i) => ({ "@type": "ListItem", position: i + 1, url: `${SITE}${athletePath(l, a.slug)}`, name: a.name })) };
+  const tab = (m: RankMetric, label: string) => <Link className={r.m === m ? "on" : ""} href={rankPath(l, { c: r.c, sex: r.sex, m })}>{label}</Link>;
+  return (
+    <div className="ld">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify([orgLd(), breadcrumbLd([{ name: "24/7 Coach", url: `/${l}` }, { name: x.nav, url: athletesPath(l) }, { name: c.rkLink, url: rankPath(l) }]), ld]) }} />
+      <SiteNav lang={l} t={t} altPaths={alt((k) => rankPath(k, { c: r.c, sex: r.sex, m: r.m }))} />
+      <main>
+        <div className="ld-rhead ld-chead">
+          <div className="ld-wrap">
+            <p className="mono"><Link href={athletesPath(l)}>{x.nav}</Link> · {c.rkLink}</p>
+            <h1 style={{ marginTop: 8 }}>{c.rkH1a} <em>{place}</em></h1>
+            <p className="ld-lead">{c.rkLead}</p>
+          </div>
+        </div>
+        <section className="ld-sec">
+          <div className="ld-wrap">
+            <div className="ld-ed-filters">{tab("full", c.rkFull)}{tab("half", c.rkHalf)}{tab("finishes", c.rkFin)}</div>
+            <div className="ld-ed-filters">
+              <Link className={!r.sex ? "on" : ""} href={rankPath(l, { c: r.c, m: r.m })}>{c.rkAll}</Link>
+              <Link className={r.sex === "M" ? "on" : ""} href={rankPath(l, { c: r.c, m: r.m, sex: "M" })} rel="nofollow">{c.rkMen}</Link>
+              <Link className={r.sex === "F" ? "on" : ""} href={rankPath(l, { c: r.c, m: r.m, sex: "F" })} rel="nofollow">{c.rkWomen}</Link>
+            </div>
+            <div className="ld-scroll" style={{ marginTop: 16 }}>
+              <table className="ld-edrank">
+                <thead><tr><th>#</th><th>{x.edName}</th><th>{c.rkCountry}</th><th>{r.m === "finishes" ? c.rkCount : c.rkBest}</th></tr></thead>
+                <tbody>
+                  {rows.map((a, i) => (
+                    <tr key={a.slug}>
+                      <td className="num">{i + 1}</td>
+                      <td><Link href={athletePath(l, a.slug)}>{flag(a.country)} {a.name}</Link></td>
+                      <td>{a.country ? <Link href={rankPath(l, { c: a.country, m: r.m })}>{countryName(a.country, l)}</Link> : "–"}</td>
+                      <td className="num"><b>{r.m === "finishes" ? a.finishes : hms(r.m === "full" ? a.rank_full : a.rank_half)}</b></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {rows.length ? null : <p className="ld-lead">{c.rkNone}</p>}
+            <p className="note" style={{ marginTop: 16 }}>{c.rkNote}</p>
+          </div>
+        </section>
+        <section className="ld-sec">
+          <div className="ld-wrap">
+            <h2>{c.rkLink}</h2>
+            <div className="ld-ed-filters">
+              <Link className={!r.c ? "on" : ""} href={rankPath(l, { m: r.m })}>{c.rkAllC}</Link>
+              {RANK_COUNTRIES.map((cc) => <Link key={cc} className={r.c === cc ? "on" : ""} href={rankPath(l, { c: cc, m: r.m })}>{flag(cc)} {countryName(cc, l)}</Link>)}
+            </div>
+            <p className="note" style={{ marginTop: 22 }}>{x.srcNote}</p>
+            <p className="note" style={{ marginTop: 8 }}>{x.privNote} <Link href={removePath(l)}>{x.privLink}</Link></p>
           </div>
         </section>
       </main>

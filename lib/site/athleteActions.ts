@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { athLang, removePath } from "@/lib/site/athletes";
 import { claimPath } from "@/lib/site/career";
+import { tgSend } from "@/lib/notify/athlete";
 
 export async function removeAthlete(form: FormData) {
   const l = athLang(String(form.get("lang") ?? "en"));
@@ -44,6 +45,8 @@ export async function claimAthlete(form: FormData) {
       const row = a as { cid: string; slug: string; name: string };
       const { error } = await admin.from("ath_claims").insert({ cid: row.cid, slug: row.slug, name: row.name, email, other, note, lang: l });
       ok = !error;
+      const owner = process.env.TELEGRAM_CHAT_ID;
+      if (ok && owner) await tgSend(owner, `Richiesta profilo atleta (sito)\n${row.name}\nhttps://247coachai.com/it/atleti/${row.slug}\nEmail: ${email}${other ? `\nAltre pagine o risultati: ${other}` : ""}${note ? `\nNota: ${note}` : ""}`.slice(0, 3500)).catch(() => false);
     }
   }
   redirect(`${claimPath(l)}${ok ? "?done=1" : `?err=1${slug ? `&slug=${encodeURIComponent(slug)}` : ""}`}`);

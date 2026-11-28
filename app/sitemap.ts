@@ -6,7 +6,7 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { availableLangsMap, hasLang } from "@/lib/site/seoLangs";
 import { COACH_PAGES, coachPath } from "@/lib/site/coach";
 import { EDITIONS, athletesPath, editionPath } from "@/lib/site/athletes";
-import { equivPath } from "@/lib/site/career";
+import { RANK_COUNTRIES, equivPath, rankPath } from "@/lib/site/career";
 import { TOPIC_FACET, dataFacetPath, dataFacetsFor, facetPath, facetsFor } from "@/lib/site/facets";
 
 export const revalidate = 3600;
@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const l of ["en", "it"] as const) {
     out.push({ url: `${base}${athletesPath(l)}`, changeFrequency: "weekly", priority: 0.8 });
     out.push({ url: `${base}${equivPath(l)}`, changeFrequency: "monthly", priority: 0.8 });
+    out.push({ url: `${base}${rankPath(l)}`, changeFrequency: "weekly", priority: 0.7 });
+    for (const m of ["full", "half"] as const) for (const c of RANK_COUNTRIES) out.push({ url: `${base}${rankPath(l, { c, m }).replace(/&/g, "&amp;")}`, changeFrequency: "weekly", priority: 0.5 });
     for (const e of EDITIONS) out.push({ url: `${base}${editionPath(l, e.id)}`, changeFrequency: "monthly", priority: 0.6 });
   }
   for (const lang of LANGS) {

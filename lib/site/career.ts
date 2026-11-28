@@ -43,6 +43,10 @@ export function careerRows(results: AthResult[]): CareerRow[] {
 
 const EQ_SEG: Record<AthLang, string> = { en: "equivalent", it: "equivalente" };
 const CL_SEG: Record<AthLang, string> = { en: "claim", it: "rivendica" };
+const RK_SEG: Record<AthLang, string> = { en: "rankings", it: "classifiche" };
+export const RANK_SEG = RK_SEG;
+export const RANK_COUNTRIES = ["US", "GB", "FR", "DE", "AU", "CA", "BR", "MX", "IT", "ZA", "ES", "NL", "BE", "SE", "DK", "PL", "IE", "CH", "AR", "CO", "AT", "NZ", "JP", "CL", "PH", "KR", "IN", "PT", "TW", "CZ", "NO", "FI", "VN", "CN", "IL", "EC", "EE", "MY", "SG", "PE", "UA", "GR", "TR", "CR", "SK", "HU", "VE", "HK", "LT", "KZ", "GT", "PR", "UY", "MA", "HR", "SI", "TH", "RO", "LU"];
+export const rankPath = (l: Lang | string, o: { c?: string | null; sex?: string | null; m?: string | null } = {}) => { const q = new URLSearchParams(); if (o.m && o.m !== "full") q.set("m", o.m); if (o.c) q.set("c", o.c); if (o.sex) q.set("sex", o.sex); const s2 = q.toString(); return `${athletesPath(l)}/${RK_SEG[athLang(l)]}${s2 ? `?${s2}` : ""}`; };
 export const EQUIV_SEG = EQ_SEG, CLAIM_SEG = CL_SEG;
 export const equivPath = (l: Lang | string) => `${athletesPath(l)}/${EQ_SEG[athLang(l)]}`;
 export const claimPath = (l: Lang | string, slug?: string) => `${athletesPath(l)}/${CL_SEG[athLang(l)]}${slug ? `?slug=${encodeURIComponent(slug)}` : ""}`;
@@ -66,6 +70,10 @@ export const CAR: Record<AthLang, Txt> = {
     eqResult: "Equivalent time", eqSame: "your race", eqFaster: "faster course", eqSlower: "slower course", eqBad: "Enter a time such as 12:30:00.", eqPct: "faster than {p}% of the last edition's finishers",
     eqNote: "It is an estimate from medians: weather on the day, your strengths and how you pace change the result. Courses with a shortened leg are left out of the index.",
     eqTableH: "Every race, from fastest to slowest", eqTableLead: "How much slower or faster each course is than the average race of the same distance, in total and leg by leg.", eqRace: "Race", eqIdx: "Total",
+    rkTitle: "IRONMAN athlete rankings{place}: best times and most finishes", rkH1a: "The fastest athletes", rkH1b: "{place}", rkWorld: "in the world", rkIn: "from {country}",
+    rkLead: "Best finish times from 2017 to 2026 for IRONMAN and from 2022 for 70.3, counting only editions raced on the full course. Pick a country, a distance or the athletes with the most finishes.",
+    rkFull: "Full distance", rkHalf: "70.3", rkFin: "Most finishes", rkAll: "All", rkMen: "Men", rkWomen: "Women", rkCountry: "Country", rkAllC: "All countries", rkBest: "Best time", rkCount: "Races finished", rkNone: "No athletes for this selection.",
+    rkNote: "Editions where a leg was shortened or cancelled do not count for best times. Some very fast times may still come from courses that were shorter than standard on the day.", rkLink: "Rankings by country",
     clTitle: "Claim an athlete profile", clH1: "Is this your profile?", clLead: "Some athletes appear twice, because results come from sources that identify people differently, and a few results may be attached to the wrong person. Tell us which pages are yours and what is wrong: we check and fix it by hand.",
     clSlug: "Address of your page", clOther: "Other pages that are also you, or results that are not yours (one per line)", clEmail: "Your email, so we can tell you when it is done", clNote: "Anything that helps us check (optional)", clBtn: "Send the request",
     clDone: "Received. We check each request by hand and write to you when it is done.", clErr: "We couldn't find that page, or the email is missing. Paste the full address of your page.",
@@ -88,6 +96,10 @@ export const CAR: Record<AthLang, Txt> = {
     eqResult: "Tempo equivalente", eqSame: "la tua gara", eqFaster: "percorso più veloce", eqSlower: "percorso più lento", eqBad: "Inserisci un tempo come 12:30:00.", eqPct: "più veloce del {p}% degli arrivati dell'ultima edizione",
     eqNote: "È una stima fatta sulle mediane: il meteo del giorno, i tuoi punti di forza e come gestisci la gara cambiano il risultato. I percorsi con una frazione accorciata restano fuori dall'indice.",
     eqTableH: "Tutte le gare, dalla più veloce alla più lenta", eqTableLead: "Quanto ogni percorso è più lento o più veloce della gara media della stessa distanza, sul totale e frazione per frazione.", eqRace: "Gara", eqIdx: "Totale",
+    rkTitle: "Classifiche atleti IRONMAN{place}: migliori tempi e più gare finite", rkH1a: "Gli atleti più veloci", rkH1b: "{place}", rkWorld: "del mondo", rkIn: "· {country}",
+    rkLead: "I migliori tempi finali dal 2017 al 2026 per gli IRONMAN e dal 2022 per i 70.3, contando solo le edizioni corse sul percorso completo. Scegli un paese, una distanza o gli atleti con più gare finite.",
+    rkFull: "Distanza full", rkHalf: "70.3", rkFin: "Più gare finite", rkAll: "Tutti", rkMen: "Uomini", rkWomen: "Donne", rkCountry: "Paese", rkAllC: "Tutti i paesi", rkBest: "Miglior tempo", rkCount: "Gare finite", rkNone: "Nessun atleta per questa selezione.",
+    rkNote: "Le edizioni con una frazione accorciata o annullata non contano per i migliori tempi. Qualche tempo molto veloce può comunque venire da percorsi più corti dello standard quel giorno.", rkLink: "Classifiche per paese",
     clTitle: "Rivendica un profilo atleta", clH1: "Questo profilo sei tu?", clLead: "Alcuni atleti compaiono due volte, perché i risultati arrivano da fonti che identificano le persone in modo diverso, e qualche risultato può essere finito sulla persona sbagliata. Dicci quali pagine sono tue e cosa non va: controlliamo e sistemiamo a mano.",
     clSlug: "Indirizzo della tua pagina", clOther: "Altre pagine che sei sempre tu, o risultati che non sono tuoi (uno per riga)", clEmail: "La tua email, per avvisarti quando è fatto", clNote: "Quello che ci aiuta a verificare (facoltativo)", clBtn: "Invia la richiesta",
     clDone: "Ricevuta. Controlliamo ogni richiesta a mano e ti scriviamo quando è fatto.", clErr: "Non abbiamo trovato quella pagina, oppure manca l'email. Incolla l'indirizzo completo della tua pagina.",
